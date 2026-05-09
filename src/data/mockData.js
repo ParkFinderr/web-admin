@@ -48,9 +48,9 @@ export const USERS = [
 ]
 
 export const SWAP_LOGS = [
-  { id: 'SWP-001', ticketOld: 'PKF-F3A7F6H5', ticketNew: 'PKF-SW-ABCD01', userName: 'Farah Amelia',  plate: 'BG 2345 KL', fromParking: 'UNILA Teknik',       fromSlot: 'L1/A03',  toParking: 'Mall Boemi Kedaton', toSlot: 'B1/B1-02', swapTime: '2026-05-08T09:45:00Z', status: 'success' },
+  { id: 'SWP-001', ticketOld: 'PKF-F3A7F6H5', ticketNew: 'PKF-SW-ABCD01', userName: 'Farah Amelia',  plate: 'BG 2345 KL', fromParking: 'UNILA Teknik',       fromSlot: 'L1/A03',  toParking: 'UNILA Teknik',       toSlot: 'B1/B1-02', swapTime: '2026-05-08T09:45:00Z', status: 'success' },
   { id: 'SWP-002', ticketOld: 'PKF-A8C2F1D0', ticketNew: 'PKF-SW-ABCD02', userName: 'Ahmad Fauzi',   plate: 'BE 1234 AB', fromParking: 'UNILA Teknik',       fromSlot: 'B1/B1-03', toParking: 'UNILA Teknik',       toSlot: 'L1/A02',   swapTime: '2026-05-08T08:40:00Z', status: 'success' },
-  { id: 'SWP-003', ticketOld: 'PKF-G2E8G7I6', ticketNew: null,            userName: 'Gunawan Halim', plate: 'BE 4567 MN', fromParking: 'Mall Boemi Kedaton', fromSlot: 'L1/A03',  toParking: 'Lampung City Mall',  toSlot: 'L2/B03',   swapTime: '2026-05-07T15:00:00Z', status: 'failed' },
+  { id: 'SWP-003', ticketOld: 'PKF-G2E8G7I6', ticketNew: null,            userName: 'Gunawan Halim', plate: 'BE 4567 MN', fromParking: 'Mall Boemi Kedaton', fromSlot: 'L1/A03',  toParking: 'Mall Boemi Kedaton', toSlot: 'L2/B03',   swapTime: '2026-05-07T15:00:00Z', status: 'failed' },
 ]
 
 export const SCAN_LOGS = [

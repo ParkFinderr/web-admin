@@ -1,129 +1,131 @@
-import { useState } from 'react'
-import { BOOKINGS } from '../data/mockData'
-import { Search, Filter } from 'lucide-react'
-
-const fmtDate = (iso) => {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) +
-    ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-}
-
+import BookingDetailModal from "../components/pages/BookingsPage/BookingDetailModal";
+import { useState } from 'react';
+import { BOOKINGS } from '../data/mockData';
+import { Search, Filter } from 'lucide-react';
+const fmtDate = iso => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }) + ' ' + d.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 const STATUS_MAP = {
-  active:    { label: 'Aktif',   cls: 'badge-green',  prefix: '●' },
-  completed: { label: 'Selesai', cls: 'badge-gray',   prefix: '✓' },
-  swapped:   { label: 'Ditukar', cls: 'badge-accent',  prefix: '⇄' },
-  cancelled: { label: 'Batal',   cls: 'badge-red',    prefix: '✕' },
-}
-
-function BookingDetailModal({ booking, onClose }) {
-  if (!booking) return null
-  const s = STATUS_MAP[booking.status] || { label: booking.status, cls: 'badge-gray', prefix: '' }
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: 520, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>TIKET PARKIR</div>
-            <div className="ticket-code" style={{ fontSize: 16 }}>{booking.id}</div>
-          </div>
-          <span className={`badge ${s.cls}`}>{s.prefix} {s.label}</span>
-        </div>
-
-        <div style={{ padding: '20px 24px' }}>
-          {[
-            ['Nama Pemesan', booking.userName],
-            ['No. Telepon', booking.userPhone],
-            ['Plat Kendaraan', booking.plate],
-            ['Gedung Parkir', booking.parkingName],
-            ['Lantai / Slot', `${booking.floor} / ${booking.slot}`],
-            ['Waktu Booking', fmtDate(booking.createdAt)],
-            ['Waktu Scan Masuk', booking.scanTime ? fmtDate(booking.scanTime) : '—'],
-            ['Waktu Keluar', booking.exitTime ? fmtDate(booking.exitTime) : '—'],
-            ['Durasi', booking.duration || '—'],
-          ].map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)', gap: 12 }}>
-              <span style={{ fontSize: 13, color: 'var(--text3)' }}>{k}</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', textAlign: 'right', maxWidth: 240 }}>{v}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'flex-end', gap: 10, borderTop: '1px solid var(--border)' }}>
-          {booking.status === 'active' && (
-            <button className="btn btn-danger btn-sm">Force Checkout</button>
-          )}
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>Tutup</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
+  active: {
+    label: 'Aktif',
+    cls: 'badge-green',
+    prefix: '●'
+  },
+  completed: {
+    label: 'Selesai',
+    cls: 'badge-gray',
+    prefix: '✓'
+  },
+  swapped: {
+    label: 'Ditukar',
+    cls: 'badge-accent',
+    prefix: '⇄'
+  },
+  cancelled: {
+    label: 'Batal',
+    cls: 'badge-red',
+    prefix: '✕'
+  }
+};
 export default function BookingsPage() {
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [selected, setSelected] = useState(null)
-  const [page, setPage] = useState(1)
-  const PER_PAGE = 6
-
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selected, setSelected] = useState(null);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 6;
   const filtered = BOOKINGS.filter(b => {
-    const matchSearch =
-      b.userName.toLowerCase().includes(search.toLowerCase()) ||
-      b.id.toLowerCase().includes(search.toLowerCase()) ||
-      b.plate.toLowerCase().includes(search.toLowerCase()) ||
-      b.parkingName.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = statusFilter === 'all' || b.status === statusFilter
-    return matchSearch && matchStatus
-  })
-
-  const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
-  const totalPages = Math.ceil(filtered.length / PER_PAGE)
-
+    const matchSearch = b.userName.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase()) || b.plate.toLowerCase().includes(search.toLowerCase()) || b.parkingName.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'all' || b.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+  const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const counts = {
     all: BOOKINGS.length,
     active: BOOKINGS.filter(b => b.status === 'active').length,
     completed: BOOKINGS.filter(b => b.status === 'completed').length,
-    swapped: BOOKINGS.filter(b => b.status === 'swapped').length,
-  }
-
-  return (
-    <div>
+    swapped: BOOKINGS.filter(b => b.status === 'swapped').length
+  };
+  return <div>
       <div className="page-header">
         <div>
           <h1 className="page-title">📋 Manajemen Booking</h1>
           <p className="page-sub">Monitor dan kelola semua transaksi booking parkir</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{
+        display: 'flex',
+        gap: 8
+      }}>
           <button className="btn btn-ghost">Export CSV</button>
         </div>
       </div>
 
       {/* Summary mini cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px,1fr))', gap: 12, marginBottom: 20 }}>
-        {[
-          { label: 'Total', value: counts.all, color: 'var(--text)' },
-          { label: 'Aktif', value: counts.active, color: 'var(--green)' },
-          { label: 'Selesai', value: counts.completed, color: 'var(--text3)' },
-          { label: 'Ditukar', value: counts.swapped, color: 'var(--accent)' },
-        ].map((s, i) => (
-          <div key={i} className="card" style={{ padding: '14px 18px', textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{s.label}</div>
-          </div>
-        ))}
+      <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(140px,1fr))',
+      gap: 12,
+      marginBottom: 20
+    }}>
+        {[{
+        label: 'Total',
+        value: counts.all,
+        color: 'var(--text)'
+      }, {
+        label: 'Aktif',
+        value: counts.active,
+        color: 'var(--green)'
+      }, {
+        label: 'Selesai',
+        value: counts.completed,
+        color: 'var(--text3)'
+      }, {
+        label: 'Ditukar',
+        value: counts.swapped,
+        color: 'var(--accent)'
+      }].map((s, i) => <div key={i} className="card" style={{
+        padding: '14px 18px',
+        textAlign: 'center'
+      }}>
+            <div style={{
+          fontSize: 22,
+          fontWeight: 800,
+          color: s.color
+        }}>{s.value}</div>
+            <div style={{
+          fontSize: 12,
+          color: 'var(--text3)',
+          marginTop: 3
+        }}>{s.label}</div>
+          </div>)}
       </div>
 
       {/* Filter bar */}
       <div className="filter-bar">
-        <div className="input-icon-wrap" style={{ flex: 1, minWidth: 200 }}>
+        <div className="input-icon-wrap" style={{
+        flex: 1,
+        minWidth: 200
+      }}>
           <Search size={14} className="input-icon" />
-          <input className="input" placeholder="Cari nama, kode tiket, plat, gedung..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
+          <input className="input" placeholder="Cari nama, kode tiket, plat, gedung..." value={search} onChange={e => {
+          setSearch(e.target.value);
+          setPage(1);
+        }} />
         </div>
         <div className="filter-tabs">
-          {[['all','Semua'], ['active','Aktif'], ['completed','Selesai'], ['swapped','Ditukar']].map(([v, l]) => (
-            <button key={v} className={`filter-tab ${statusFilter === v ? 'active' : ''}`} onClick={() => { setStatusFilter(v); setPage(1) }}>{l}</button>
-          ))}
+          {[['all', 'Semua'], ['active', 'Aktif'], ['completed', 'Selesai'], ['swapped', 'Ditukar']].map(([v, l]) => <button key={v} className={`filter-tab ${statusFilter === v ? 'active' : ''}`} onClick={() => {
+          setStatusFilter(v);
+          setPage(1);
+        }}>{l}</button>)}
         </div>
       </div>
 
@@ -144,65 +146,102 @@ export default function BookingsPage() {
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 ? (
-                <tr>
+              {paged.length === 0 ? <tr>
                   <td colSpan={8}>
                     <div className="empty-state">
                       <div className="empty-icon">🔍</div>
                       <div>Tidak ada data ditemukan</div>
                     </div>
                   </td>
-                </tr>
-              ) : paged.map(b => {
-                const s = STATUS_MAP[b.status] || { label: b.status, cls: 'badge-gray', prefix: '' }
-                return (
-                  <tr key={b.id}>
+                </tr> : paged.map(b => {
+              const s = STATUS_MAP[b.status] || {
+                label: b.status,
+                cls: 'badge-gray',
+                prefix: ''
+              };
+              return <tr key={b.id}>
                     <td><span className="ticket-code">{b.id}</span></td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                  }}>
                         <div className="avatar avatar-sm">{b.userName[0]}</div>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{b.userName}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text3)' }}>{b.userPhone}</div>
+                          <div style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: 'var(--text)'
+                      }}>{b.userName}</div>
+                          <div style={{
+                        fontSize: 11,
+                        color: 'var(--text3)'
+                      }}>{b.userPhone}</div>
                         </div>
                       </div>
                     </td>
-                    <td><span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontFamily: 'monospace' }}>{b.plate}</span></td>
+                    <td><span style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    fontFamily: 'monospace'
+                  }}>{b.plate}</span></td>
                     <td>
-                      <div style={{ fontSize: 13, color: 'var(--text)' }}>{b.parkingName}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>{b.floor} / {b.slot}</div>
+                      <div style={{
+                    fontSize: 13,
+                    color: 'var(--text)'
+                  }}>{b.parkingName}</div>
+                      <div style={{
+                    fontSize: 11,
+                    color: 'var(--text3)'
+                  }}>{b.floor} / {b.slot}</div>
                     </td>
-                    <td><span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 700 }}>{b.duration || '—'}</span></td>
-                    <td><span style={{ fontSize: 12 }}>{fmtDate(b.createdAt)}</span></td>
+                    <td><span style={{
+                    fontSize: 13,
+                    color: 'var(--accent)',
+                    fontWeight: 700
+                  }}>{b.duration || '—'}</span></td>
+                    <td><span style={{
+                    fontSize: 12
+                  }}>{fmtDate(b.createdAt)}</span></td>
                     <td><span className={`badge ${s.cls}`}>{s.prefix} {s.label}</span></td>
                     <td>
                       <button className="btn btn-ghost btn-sm" onClick={() => setSelected(b)}>Detail</button>
                     </td>
-                  </tr>
-                )
-              })}
+                  </tr>;
+            })}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 13, color: 'var(--text3)' }}>
+        {totalPages > 1 && <div style={{
+        padding: '14px 20px',
+        borderTop: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+            <div style={{
+          fontSize: 13,
+          color: 'var(--text3)'
+        }}>
               Menampilkan {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} dari {filtered.length} data
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{
+          display: 'flex',
+          gap: 6
+        }}>
               <button className="btn btn-ghost btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                <button key={n} className={`btn btn-sm ${n === page ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setPage(n)}>{n}</button>
-              ))}
+              {Array.from({
+            length: totalPages
+          }, (_, i) => i + 1).map(n => <button key={n} className={`btn btn-sm ${n === page ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setPage(n)}>{n}</button>)}
               <button className="btn btn-ghost btn-sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
             </div>
-          </div>
-        )}
+          </div>}
       </div>
 
       {selected && <BookingDetailModal booking={selected} onClose={() => setSelected(null)} />}
-    </div>
-  )
+    </div>;
 }
