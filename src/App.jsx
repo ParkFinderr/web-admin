@@ -1,122 +1,102 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AppProvider, useApp } from './context/AppContext'
+import Sidebar from './components/Sidebar'
+import Topbar from './components/Topbar'
+import StaffLayout from './components/StaffLayout'
+import LoginPage from './pages/LoginPage'
+import Dashboard from './pages/Dashboard'
+import ParkingsPage from './pages/ParkingsPage'
+import BookingsPage from './pages/BookingsPage'
+import UsersPage from './pages/UsersPage'
+import ScansPage from './pages/ScansPage'
+import SwapsPage from './pages/SwapsPage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import SettingsPage from './pages/SettingsPage'
+import StaffDashboard from './pages/StaffDashboard'
+import StaffManagementPage from './pages/StaffManagementPage'
+import './index.css'
 
-function App() {
-  const [count, setCount] = useState(0)
-
+/* ── Admin Layout ──────────────────────────────────────────────────── */
+function AdminLayout({ children }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <div className="admin-layout">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="admin-main">
+        <Topbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        <main className="admin-content">{children}</main>
+      </div>
+    </div>
   )
 }
 
-export default App
+/* ── Route Guards ──────────────────────────────────────────────────── */
+function RequireAdmin({ children }) {
+  const { isLoggedIn, isAdmin } = useApp()
+  if (!isLoggedIn) return <Navigate to="/login" replace />
+  if (!isAdmin)   return <Navigate to="/staff" replace />
+  return children
+}
+
+function RequireStaff({ children }) {
+  const { isLoggedIn, isStaff } = useApp()
+  if (!isLoggedIn) return <Navigate to="/login" replace />
+  if (!isStaff)    return <Navigate to="/" replace />
+  return children
+}
+
+/* ── Routes ────────────────────────────────────────────────────────── */
+function AppRoutes() {
+  const { isLoggedIn, isAdmin, isStaff } = useApp()
+
+  const adminHome = (
+    <RequireAdmin>
+      <AdminLayout><Dashboard /></AdminLayout>
+    </RequireAdmin>
+  )
+
+  return (
+    <Routes>
+      {/* Public */}
+      <Route path="/login" element={
+        !isLoggedIn ? <LoginPage />
+          : isAdmin ? <Navigate to="/" replace />
+          : <Navigate to="/staff" replace />
+      } />
+
+      {/* Admin routes */}
+      <Route path="/" element={<RequireAdmin><AdminLayout><Dashboard /></AdminLayout></RequireAdmin>} />
+      <Route path="/parkings"  element={<RequireAdmin><AdminLayout><ParkingsPage /></AdminLayout></RequireAdmin>} />
+      <Route path="/bookings"  element={<RequireAdmin><AdminLayout><BookingsPage /></AdminLayout></RequireAdmin>} />
+      <Route path="/users"     element={<RequireAdmin><AdminLayout><UsersPage /></AdminLayout></RequireAdmin>} />
+      <Route path="/scans"     element={<RequireAdmin><AdminLayout><ScansPage /></AdminLayout></RequireAdmin>} />
+      <Route path="/swaps"     element={<RequireAdmin><AdminLayout><SwapsPage /></AdminLayout></RequireAdmin>} />
+      <Route path="/analytics" element={<RequireAdmin><AdminLayout><AnalyticsPage /></AdminLayout></RequireAdmin>} />
+      <Route path="/staff-management" element={<RequireAdmin><AdminLayout><StaffManagementPage /></AdminLayout></RequireAdmin>} />
+      <Route path="/settings"  element={<RequireAdmin><AdminLayout><SettingsPage /></AdminLayout></RequireAdmin>} />
+
+      {/* Staff route */}
+      <Route path="/staff" element={
+        <RequireStaff>
+          <StaffLayout><StaffDashboard /></StaffLayout>
+        </RequireStaff>
+      } />
+
+      {/* Fallback */}
+      <Route path="*" element={
+        <Navigate to={!isLoggedIn ? '/login' : isAdmin ? '/' : '/staff'} replace />
+      } />
+    </Routes>
+  )
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AppProvider>
+  )
+}
