@@ -15,6 +15,7 @@ import AnalyticsPage from './pages/AnalyticsPage'
 import SettingsPage from './pages/SettingsPage'
 import StaffDashboard from './pages/StaffDashboard'
 import StaffManagementPage from './pages/StaffManagementPage'
+import ProfilePage from './pages/ProfilePage'
 import './index.css'
 
 /* ── Admin Layout ──────────────────────────────────────────────────── */
@@ -74,6 +75,7 @@ function AppRoutes() {
       <Route path="/swaps"     element={<RequireAdmin><AdminLayout><SwapsPage /></AdminLayout></RequireAdmin>} />
       <Route path="/analytics" element={<RequireAdmin><AdminLayout><AnalyticsPage /></AdminLayout></RequireAdmin>} />
       <Route path="/staff-management" element={<RequireAdmin><AdminLayout><StaffManagementPage /></AdminLayout></RequireAdmin>} />
+      <Route path="/profile"          element={<RequireAdmin><AdminLayout><ProfilePage /></AdminLayout></RequireAdmin>} />
       <Route path="/settings"  element={<RequireAdmin><AdminLayout><SettingsPage /></AdminLayout></RequireAdmin>} />
 
       {/* Staff route */}

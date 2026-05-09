@@ -1,9 +1,10 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Car, CalendarCheck, Users,
-  QrCode, ArrowLeftRight, BarChart3, Settings, LogOut, UserCog
+  QrCode, ArrowLeftRight, BarChart3, Settings, LogOut, UserCog, UserCircle
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import Avatar from './Avatar'
 
 const LOGO_URL = 'https://storage.googleapis.com/parkfinderbucket/foto/logo.png'
 
@@ -29,13 +30,15 @@ const NAV_ITEMS = [
     section: 'Sistem',
     items: [
       { path: '/staff-management', label: 'Manajemen Staff', icon: UserCog },
-      { path: '/settings', label: 'Pengaturan', icon: Settings },
+      { path: '/profile',          label: 'Profil & Keamanan', icon: UserCircle },
+      { path: '/settings',         label: 'Pengaturan', icon: Settings },
     ],
   },
 ]
 
 export default function Sidebar({ open, onClose }) {
   const { user, logout } = useApp()
+  const navigate = useNavigate()
 
   return (
     <>
@@ -86,7 +89,13 @@ export default function Sidebar({ open, onClose }) {
             padding: '10px 12px', borderRadius: 'var(--radius)',
             background: 'var(--bg-hover)', border: '1px solid var(--border)',
           }}>
-            <div className="avatar avatar-sm">{user?.name?.[0] || 'A'}</div>
+            <button
+              onClick={() => { navigate('/profile'); onClose?.() }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', borderRadius: '50%' }}
+              title="Profil & Keamanan"
+            >
+              <Avatar size={36} fontSize={15} />
+            </button>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{user?.name || 'Admin'}</div>
               <div style={{ fontSize: 11, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

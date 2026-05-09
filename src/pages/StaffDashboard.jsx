@@ -5,7 +5,8 @@ import {
 } from 'recharts'
 import { useApp } from '../context/AppContext'
 import { PARKINGS, BOOKINGS, SCAN_LOGS, SWAP_LOGS, HOURLY_SCAN_DATA } from '../data/mockData'
-import { Search, Edit2, X, Save } from 'lucide-react'
+import { Search, Edit2, X, Save, LayoutGrid } from 'lucide-react'
+import SlotManagerModal from '../components/SlotManagerModal'
 
 /* ── Modal Edit Gedung (Staff – field terbatas) ────────────────── */
 function EditGedungModal({ parking, onClose, onSave }) {
@@ -125,9 +126,10 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function StaffDashboard() {
   const { user } = useApp()
-  const [tab, setTab]         = useState('scan')
-  const [search, setSearch]   = useState('')
+  const [tab, setTab]           = useState('scan')
+  const [search, setSearch]     = useState('')
   const [showEdit, setShowEdit] = useState(false)
+  const [showSlots, setShowSlots] = useState(false)
 
   // Data gedung – bisa diupdate via edit modal
   const baseParkings = PARKINGS
@@ -182,6 +184,10 @@ export default function StaffDashboard() {
             <div className="status-dot status-dot-green" />
             <span style={{ fontSize:13, color:'var(--green)', fontWeight:600 }}>Sistem Online</span>
           </div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowSlots(true)}
+            style={{ color:'var(--accent)', borderColor:'rgba(0,210,255,0.2)', background:'rgba(0,210,255,0.06)' }}>
+            <LayoutGrid size={13} /> Kelola Slot
+          </button>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowEdit(true)}
             style={{ color:'var(--orange)', borderColor:'rgba(245,158,11,0.25)', background:'rgba(245,158,11,0.06)' }}>
             <Edit2 size={13} /> Edit Gedung
@@ -446,6 +452,17 @@ export default function StaffDashboard() {
           parking={parking}
           onClose={() => setShowEdit(false)}
           onSave={(updated) => { setLocalParking(updated); setShowEdit(false) }}
+        />
+      )}
+      {showSlots && (
+        <SlotManagerModal
+          parking={parking}
+          readonly={true}
+          onClose={() => setShowSlots(false)}
+          onSave={(data) => {
+            setLocalParking(prev => ({ ...prev, slotStatus: data.slotStatus }))
+            setShowSlots(false)
+          }}
         />
       )}
     </div>

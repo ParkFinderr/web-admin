@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Menu, Bell, RefreshCw, Sun, Moon } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import Avatar from './Avatar'
 
 const PAGE_TITLES = {
   '/':                  { title: 'Dashboard',          sub: 'Selamat datang kembali, Admin' },
@@ -24,6 +25,7 @@ const NOTIFS = [
 
 export default function Topbar({ onMenuClick }) {
   const location = useLocation()
+  const navigate  = useNavigate()
   const { theme, toggleTheme } = useApp()
   const page = PAGE_TITLES[location.pathname] || { title: 'ParkFinder Admin', sub: '' }
   const [notifOpen, setNotifOpen] = useState(false)
@@ -107,7 +109,13 @@ export default function Topbar({ onMenuClick }) {
           )}
         </div>
 
-        <div className="avatar avatar-sm" style={{ cursor: 'pointer' }}>A</div>
+        <button
+          onClick={() => navigate('/profile')}
+          title="Profil & Keamanan"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', borderRadius: '50%' }}
+        >
+          <Avatar size={34} fontSize={14} />
+        </button>
       </div>
     </header>
   )

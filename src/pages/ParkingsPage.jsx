@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PARKINGS as INITIAL_PARKINGS } from '../data/mockData'
-import { Search, MapPin, Plus, X, Building2, Edit2, Save, ExternalLink, Map } from 'lucide-react'
+import { Search, MapPin, Plus, X, Building2, Edit2, Save, ExternalLink, Map, LayoutGrid } from 'lucide-react'
+import SlotManagerModal from '../components/SlotManagerModal'
 
 const FLOOR_OPTIONS = ['B2','B1','L1','L2','L3','L4','L5']
 
@@ -530,6 +531,7 @@ export default function ParkingsPage() {
   const [selected, setSelected] = useState(null)
   const [showAdd, setShowAdd]   = useState(false)
   const [editTarget, setEditTarget] = useState(null)
+  const [slotTarget, setSlotTarget] = useState(null)
 
   const handleAdd = (newParking) => setParkings(prev => [...prev, newParking])
 
@@ -607,25 +609,34 @@ export default function ParkingsPage() {
 
               <OccupancyBar pct={p.occupancy} />
 
-              <div style={{ display:'flex', justifyContent:'space-between', marginTop:14, paddingTop:14, borderTop:'1px solid var(--border)' }}>
-                <div style={{ display:'flex', gap:16 }}>
-                  {[['Total Slot', p.totalSlots, 'var(--text)'],['Terisi', p.usedSlots, 'var(--red)'],['Kosong', p.totalSlots - p.usedSlots, 'var(--green)']].map(([l, v, c]) => (
-                    <div key={l}>
-                      <div style={{ fontSize:11, color:'var(--text3)' }}>{l}</div>
-                      <div style={{ fontSize:15, fontWeight:700, color:c }}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display:'flex', gap:6 }}>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setSelected(p)}>Detail →</button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setEditTarget(p)}
-                    style={{ color:'var(--orange)', borderColor:'rgba(245,158,11,0.2)', background:'rgba(245,158,11,0.06)' }}>
-                    <Edit2 size={13} /> Edit
-                  </button>
-                </div>
+              {/* Stats row */}
+              <div style={{ display:'flex', gap:16, marginTop:14, paddingTop:14, borderTop:'1px solid var(--border)' }}>
+                {[['Total Slot', p.totalSlots, 'var(--text)'],['Terisi', p.usedSlots, 'var(--red)'],['Kosong', p.totalSlots - p.usedSlots, 'var(--green)']].map(([l, v, c]) => (
+                  <div key={l}>
+                    <div style={{ fontSize:11, color:'var(--text3)' }}>{l}</div>
+                    <div style={{ fontSize:15, fontWeight:700, color:c }}>{v}</div>
+                  </div>
+                ))}
               </div>
 
-              <div style={{ marginTop:10, display:'flex', gap:6, flexWrap:'wrap' }}>
+              {/* Action buttons row — full width, 3 columns */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginTop:10 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => setSelected(p)}
+                  style={{ justifyContent:'center' }}>
+                  Detail →
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setSlotTarget(p)}
+                  style={{ color:'var(--accent)', borderColor:'rgba(0,210,255,0.2)', background:'rgba(0,210,255,0.06)', justifyContent:'center' }}>
+                  <LayoutGrid size={13} /> Slot
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditTarget(p)}
+                  style={{ color:'var(--orange)', borderColor:'rgba(245,158,11,0.2)', background:'rgba(245,158,11,0.06)', justifyContent:'center' }}>
+                  <Edit2 size={13} /> Edit
+                </button>
+              </div>
+
+              {/* Floor tags */}
+              <div style={{ marginTop:8, display:'flex', gap:6, flexWrap:'wrap' }}>
                 {p.floors.map(f => (
                   <span key={f} style={{ fontSize:11, background:'var(--bg-hover)', border:'1px solid var(--border)', borderRadius:6, padding:'2px 8px', color:'var(--text3)' }}>
                     {f}
@@ -699,6 +710,7 @@ export default function ParkingsPage() {
       {selected    && <ParkingDetailModal parking={selected}    onClose={() => setSelected(null)} />}
       {showAdd     && <AddParkingModal     onClose={() => setShowAdd(false)}   onAdd={handleAdd} />}
       {editTarget  && <EditParkingModal    parking={editTarget}  onClose={() => setEditTarget(null)} onSave={handleEdit} />}
+      {slotTarget  && <SlotManagerModal    parking={slotTarget}  onClose={() => setSlotTarget(null)} onSave={() => {}} />}
     </div>
   )
 }
