@@ -1,11 +1,11 @@
-import OccupancyBar from "../components/pages/ParkingsPage/OccupancyBar";
-import ParkingDetailModal from "../components/pages/ParkingsPage/ParkingDetailModal";
+import { Edit2, ExternalLink, LayoutGrid, Map, MapPin, Plus, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import AddParkingModal from "../components/pages/ParkingsPage/AddParkingModal";
 import EditParkingModal from "../components/pages/ParkingsPage/EditParkingModal";
-import { useState } from 'react';
-import { PARKINGS as INITIAL_PARKINGS } from '../data/mockData';
-import { Search, MapPin, Plus, X, Building2, Edit2, Save, ExternalLink, Map, LayoutGrid } from 'lucide-react';
+import OccupancyBar from "../components/pages/ParkingsPage/OccupancyBar";
+import ParkingDetailModal from "../components/pages/ParkingsPage/ParkingDetailModal";
 import SlotManagerModal from '../components/SlotManagerModal';
+import * as dataService from '../services/dataService';
 const FLOOR_OPTIONS = ['B2', 'B1', 'L1', 'L2', 'L3', 'L4', 'L5'];
 
 // ── Google Maps helpers ───────────────────────────────────────────────
@@ -38,13 +38,29 @@ function getEmbedUrl(url) {
 }
 /* ── Main Page ────────────────────────────────────────────────────────── */
 export default function ParkingsPage() {
-  const [parkings, setParkings] = useState(INITIAL_PARKINGS);
+  const [parkings, setParkings] = useState([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [selected, setSelected] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [slotTarget, setSlotTarget] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadParkings = async () => {
+      try {
+        const data = await dataService.getParkings(false);
+        setParkings(data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading parkings:', error);
+        setLoading(false);
+      }
+    };
+    loadParkings();
+  }, []);
+
   const handleAdd = newParking => setParkings(prev => [...prev, newParking]);
   const handleEdit = updated => {
     setParkings(prev => prev.map(p => p.id === updated.id ? updated : p));

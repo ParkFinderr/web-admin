@@ -1,80 +1,151 @@
+import { ArrowLeftRight, CalendarCheck, Car, CheckCircle, QrCode, TrendingUp, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import CustomTooltip from "../components/pages/Dashboard/CustomTooltip";
 import ParkingOccupancyRow from "../components/pages/Dashboard/ParkingOccupancyRow";
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { Users, CalendarCheck, Car, QrCode, ArrowLeftRight, TrendingUp, Activity, CheckCircle, XCircle, Clock, Zap } from 'lucide-react';
-import { STATS_OVERVIEW, PARKINGS, BOOKINGS, BOOKING_CHART_DATA, OCCUPANCY_DATA, HOURLY_SCAN_DATA, PLATFORM_DATA, SCAN_LOGS } from '../data/mockData';
-const fmtNumber = n => n >= 1000000 ? (n / 1000000).toFixed(1) + 'Jt' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n;
-const STATS = [{
-  label: 'Total Pengguna',
-  value: STATS_OVERVIEW.totalUsers,
-  icon: Users,
-  color: 'var(--accent)',
-  bg: 'rgba(0,210,255,0.1)',
-  fmt: fmtNumber,
-  change: '+12.4%',
-  up: true
-}, {
-  label: 'Booking Aktif',
-  value: STATS_OVERVIEW.activeBookings,
-  icon: CalendarCheck,
-  color: 'var(--green)',
-  bg: 'rgba(34,197,94,0.1)',
-  fmt: fmtNumber,
-  change: '+5.2%',
-  up: true
-}, {
-  label: 'Total Gedung',
-  value: STATS_OVERVIEW.totalParkings,
-  icon: Car,
-  color: 'var(--accent2)',
-  bg: 'rgba(123,97,255,0.1)',
-  fmt: n => n,
-  change: '0%',
-  up: null
-}, {
-  label: 'Booking Hari Ini',
-  value: STATS_OVERVIEW.todayBookings,
-  icon: TrendingUp,
-  color: 'var(--blue)',
-  bg: 'rgba(59,130,246,0.1)',
-  fmt: fmtNumber,
-  change: '+3.1%',
-  up: true
-}, {
-  label: 'Tingkat Keberhasilan',
-  value: STATS_OVERVIEW.successRate,
-  icon: CheckCircle,
-  color: 'var(--green)',
-  bg: 'rgba(34,197,94,0.1)',
-  fmt: n => n + '%',
-  change: '+0.3%',
-  up: true
-}, {
-  label: 'Tukar Slot Hari Ini',
-  value: STATS_OVERVIEW.swapRequests,
-  icon: ArrowLeftRight,
-  color: 'var(--accent2)',
-  bg: 'rgba(123,97,255,0.1)',
-  fmt: fmtNumber,
-  change: '+18%',
-  up: true
-}, {
-  label: 'Scan Aktif',
-  value: STATS_OVERVIEW.activeScans,
-  icon: QrCode,
-  color: 'var(--accent)',
-  bg: 'rgba(0,210,255,0.1)',
-  fmt: fmtNumber,
-  change: '+2.4%',
-  up: true
-}];
+import * as dataService from '../services/dataService';
+
 export default function Dashboard() {
-  const recentBookings = BOOKINGS.slice(0, 5);
-  const recentScans = SCAN_LOGS.slice(0, 5);
+  const [stats, setStats] = useState(null);
+  const [parkings, setParkings] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [scans, setScans] = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [occupancyData, setOccupancyData] = useState([]);
+  const [platformData, setPlatformData] = useState([]);
+  const [scanHourlyData, setScanHourlyData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        const [
+          statsData,
+          parkingsData,
+          bookingsData,
+          scansData,
+          chartDataRes,
+          occupancyDataRes,
+          platformDataRes,
+          scanHourlyDataRes
+        ] = await Promise.all([
+          dataService.getDashboardStats(false),
+          dataService.getParkings(false),
+          dataService.getBookings(),
+          dataService.getScans(),
+          dataService.getBookingStats(7, false),
+          dataService.getOccupancyData(false),
+          dataService.getPlatformData(false),
+          dataService.getScanStats(false)
+        ]);
+
+        setStats(statsData);
+        setParkings(parkingsData);
+        setBookings(bookingsData);
+        setScans(scansData);
+        setChartData(chartDataRes);
+        setOccupancyData(occupancyDataRes);
+        setPlatformData(platformDataRes);
+        setScanHourlyData(scanHourlyDataRes);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
+
+  // Use mock data as fallback if state is empty
+  const safeStats = stats || {
+    totalUsers: 52847,
+    activeBookings: 1243,
+    totalParkings: 6,
+    todayBookings: 347,
+    successRate: 98.7,
+    swapRequests: 89,
+    activeScans: 214,
+  };
+  const safeBookings = bookings.length > 0 ? bookings : [];
+  const safeScans = scans.length > 0 ? scans : [];
+  const safeChartData = chartData.length > 0 ? chartData : [];
+  const safeOccupancy = occupancyData.length > 0 ? occupancyData : [];
+  const safePlatform = platformData.length > 0 ? platformData : [];
+  const safeScanHourly = scanHourlyData.length > 0 ? scanHourlyData : [];
+  const safeParkings = parkings.length > 0 ? parkings : [];
+
+  const STATS_CONFIG = [{
+    label: 'Total Pengguna',
+    value: safeStats.totalUsers,
+    icon: Users,
+    color: 'var(--accent)',
+    bg: 'rgba(0,210,255,0.1)',
+    fmt: n => n >= 1000000 ? (n / 1000000).toFixed(1) + 'Jt' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n,
+    change: '+12.4%',
+    up: true
+  }, {
+    label: 'Booking Aktif',
+    value: safeStats.activeBookings,
+    icon: CalendarCheck,
+    color: 'var(--green)',
+    bg: 'rgba(34,197,94,0.1)',
+    fmt: n => n >= 1000000 ? (n / 1000000).toFixed(1) + 'Jt' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n,
+    change: '+5.2%',
+    up: true
+  }, {
+    label: 'Total Gedung',
+    value: safeStats.totalParkings,
+    icon: Car,
+    color: 'var(--accent2)',
+    bg: 'rgba(123,97,255,0.1)',
+    fmt: n => n,
+    change: '0%',
+    up: null
+  }, {
+    label: 'Booking Hari Ini',
+    value: safeStats.todayBookings,
+    icon: TrendingUp,
+    color: 'var(--blue)',
+    bg: 'rgba(59,130,246,0.1)',
+    fmt: n => n >= 1000000 ? (n / 1000000).toFixed(1) + 'Jt' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n,
+    change: '+3.1%',
+    up: true
+  }, {
+    label: 'Tingkat Keberhasilan',
+    value: safeStats.successRate,
+    icon: CheckCircle,
+    color: 'var(--green)',
+    bg: 'rgba(34,197,94,0.1)',
+    fmt: n => n + '%',
+    change: '+0.3%',
+    up: true
+  }, {
+    label: 'Tukar Slot Hari Ini',
+    value: safeStats.swapRequests,
+    icon: ArrowLeftRight,
+    color: 'var(--accent2)',
+    bg: 'rgba(123,97,255,0.1)',
+    fmt: n => n >= 1000000 ? (n / 1000000).toFixed(1) + 'Jt' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n,
+    change: '+18%',
+    up: true
+  }, {
+    label: 'Scan Aktif',
+    value: safeStats.activeScans,
+    icon: QrCode,
+    color: 'var(--accent)',
+    bg: 'rgba(0,210,255,0.1)',
+    fmt: n => n >= 1000000 ? (n / 1000000).toFixed(1) + 'Jt' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n,
+    change: '+2.4%',
+    up: true
+  }];
+
+  const recentBookings = safeBookings.slice(0, 5);
+  const recentScans = safeScans.slice(0, 5);
   return <div>
       {/* ── Stats Grid ── */}
       <div className="stat-grid animate-fade-up">
-        {STATS.map((s, i) => {
+        {STATS_CONFIG.map((s, i) => {
         const Icon = s.icon;
         return <div key={i} className="stat-card" style={{
           animationDelay: `${i * 0.04}s`
@@ -123,7 +194,7 @@ export default function Dashboard() {
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={BOOKING_CHART_DATA}>
+              <AreaChart data={safeChartData}>
                 <defs>
                   <linearGradient id="bookGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.25} />
@@ -165,8 +236,8 @@ export default function Dashboard() {
         }}>
             <ResponsiveContainer width="100%" height={160}>
               <PieChart>
-                <Pie data={PLATFORM_DATA} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={4} dataKey="value">
-                  {PLATFORM_DATA.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                <Pie data={safePlatform} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={4} dataKey="value">
+                  {safePlatform.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
               </PieChart>
@@ -177,7 +248,7 @@ export default function Dashboard() {
             gap: 8,
             width: '100%'
           }}>
-              {PLATFORM_DATA.map((p, i) => <div key={i} style={{
+              {safePlatform.map((p, i) => <div key={i} style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -220,7 +291,7 @@ export default function Dashboard() {
             <span className="badge badge-accent">Live</span>
           </div>
           <div className="card-body">
-            {PARKINGS.map(p => <ParkingOccupancyRow key={p.id} p={p} />)}
+            {safeParkings.map(p => <ParkingOccupancyRow key={p.id} p={p} />)}
           </div>
         </div>
 
@@ -243,7 +314,7 @@ export default function Dashboard() {
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={HOURLY_SCAN_DATA} barGap={2}>
+              <BarChart data={safeScanHourly} barGap={2}>
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
                 <XAxis dataKey="hour" tick={{
                 fill: 'var(--text3)',

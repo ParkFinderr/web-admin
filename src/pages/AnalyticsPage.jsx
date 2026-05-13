@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import CustomTooltip from "../components/pages/AnalyticsPage/CustomTooltip";
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { BOOKING_CHART_DATA, HOURLY_SCAN_DATA, OCCUPANCY_DATA, PLATFORM_DATA, PARKINGS } from '../data/mockData';
+import * as dataService from '../services/dataService';
 const MONTHLY_DATA = [{
   name: 'Jan',
   bookings: 4200,
@@ -57,7 +58,48 @@ const SUCCESS_RATE_DATA = [{
   gagal: 1
 }];
 export default function AnalyticsPage() {
-  return <div>
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [occupancyData, setOccupancyData] = useState([]);
+  const [platformData, setPlatformData] = useState([]);
+  const [bookingChartData, setBookingChartData] = useState([]);
+  const [scanHourlyData, setScanHourlyData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAnalyticsData = async () => {
+      try {
+        const [
+          occupancy,
+          platform,
+          bookingChart,
+          scanHourly
+        ] = await Promise.all([
+          dataService.getOccupancyData(false),
+          dataService.getPlatformData(false),
+          dataService.getBookingStats(7, false),
+          dataService.getScanStats(false)
+        ]);
+
+        setOccupancyData(occupancy);
+        setPlatformData(platform);
+        setBookingChartData(bookingChart);
+        setScanHourlyData(scanHourly);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading analytics data:', error);
+        setLoading(false);
+      }
+    };
+
+    loadAnalyticsData();
+  }, []);
+
+  const safeOccupancy = occupancyData.length > 0 ? occupancyData : [];
+  const safePlatform = platformData.length > 0 ? platformData : [];
+  const safeBookingChart = bookingChartData.length > 0 ? bookingChartData : [];
+  const safeScanHourly = scanHourlyData.length > 0 ? scanHourlyData : [];
+
+  return (
       <div className="page-header">
         <div>
           <h1 className="page-title">📊 Analitik & Statistik</h1>
@@ -156,7 +198,7 @@ export default function AnalyticsPage() {
         </div>
         <div className="card-body">
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={BOOKING_CHART_DATA}>
+            <AreaChart data={safeBookingChart}>
               <defs>
                 <linearGradient id="bkGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.25} />
@@ -196,7 +238,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={OCCUPANCY_DATA} layout="vertical">
+              <BarChart data={safeOccupancy} layout="vertical">
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
                 <XAxis type="number" domain={[0, 100]} tick={{
                 fill: 'var(--text3)',
@@ -208,7 +250,7 @@ export default function AnalyticsPage() {
               }} axisLine={false} tickLine={false} width={90} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="value" name="Okupansi %" radius={[0, 4, 4, 0]} maxBarSize={18}>
-                  {OCCUPANCY_DATA.map((entry, i) => <Cell key={i} fill={entry.value >= 90 ? 'var(--red)' : entry.value >= 75 ? 'var(--orange)' : 'var(--green)'} />)}
+                  {safeOccupancy.map((entry, i) => <Cell key={i} fill={entry.value >= 90 ? 'var(--red)' : entry.value >= 75 ? 'var(--orange)' : 'var(--green)'} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -284,7 +326,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={HOURLY_SCAN_DATA} barGap={2}>
+              <BarChart data={safeScanHourly} barGap={2}>
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
                 <XAxis dataKey="hour" tick={{
                 fill: 'var(--text3)',
@@ -319,8 +361,8 @@ export default function AnalyticsPage() {
         }}>
             <ResponsiveContainer width="100%" height={160}>
               <PieChart>
-                <Pie data={PLATFORM_DATA} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={4} dataKey="value">
-                  {PLATFORM_DATA.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                <Pie data={safePlatform} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={4} dataKey="value">
+                  {safePlatform.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
               </PieChart>
@@ -330,7 +372,7 @@ export default function AnalyticsPage() {
             gap: 32,
             marginTop: 8
           }}>
-              {PLATFORM_DATA.map((p, i) => <div key={i} style={{
+              {safePlatform.map((p, i) => <div key={i} style={{
               textAlign: 'center'
             }}>
                   <div style={{

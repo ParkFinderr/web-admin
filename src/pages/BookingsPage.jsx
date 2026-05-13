@@ -1,7 +1,7 @@
+import { Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import BookingDetailModal from "../components/pages/BookingsPage/BookingDetailModal";
-import { useState } from 'react';
-import { BOOKINGS } from '../data/mockData';
-import { Search, Filter } from 'lucide-react';
+import * as dataService from '../services/dataService';
 const fmtDate = iso => {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -37,12 +37,29 @@ const STATUS_MAP = {
   }
 };
 export default function BookingsPage() {
+  const [bookings, setBookings] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selected, setSelected] = useState(null);
   const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const PER_PAGE = 6;
-  const filtered = BOOKINGS.filter(b => {
+
+  useEffect(() => {
+    const loadBookings = async () => {
+      try {
+        const data = await dataService.getBookings();
+        setBookings(data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading bookings:', error);
+        setLoading(false);
+      }
+    };
+    loadBookings();
+  }, []);
+
+  const filtered = bookings.filter(b => {
     const matchSearch = b.userName.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase()) || b.plate.toLowerCase().includes(search.toLowerCase()) || b.parkingName.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || b.status === statusFilter;
     return matchSearch && matchStatus;
@@ -50,10 +67,10 @@ export default function BookingsPage() {
   const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const counts = {
-    all: BOOKINGS.length,
-    active: BOOKINGS.filter(b => b.status === 'active').length,
-    completed: BOOKINGS.filter(b => b.status === 'completed').length,
-    swapped: BOOKINGS.filter(b => b.status === 'swapped').length
+    all: bookings.length,
+    active: bookings.filter(b => b.status === 'active').length,
+    completed: bookings.filter(b => b.status === 'completed').length,
+    swapped: bookings.filter(b => b.status === 'swapped').length
   };
   return <div>
       <div className="page-header">

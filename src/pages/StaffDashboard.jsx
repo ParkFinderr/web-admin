@@ -1,11 +1,11 @@
+import { Edit2, LayoutGrid, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import CustomTooltip from "../components/pages/StaffDashboard/CustomTooltip";
 import EditGedungModal from "../components/pages/StaffDashboard/EditGedungModal";
-import { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useApp } from '../context/AppContext';
-import { PARKINGS, BOOKINGS, SCAN_LOGS, SWAP_LOGS, HOURLY_SCAN_DATA } from '../data/mockData';
-import { Search, Edit2, X, Save, LayoutGrid } from 'lucide-react';
 import SlotManagerModal from '../components/SlotManagerModal';
+import { useApp } from '../context/AppContext';
+import * as dataService from '../services/dataService';
 
 /* ── Modal Edit Gedung (Staff – field terbatas) ────────────────── */
 
@@ -28,29 +28,80 @@ export default function StaffDashboard() {
   const [search, setSearch] = useState('');
   const [showEdit, setShowEdit] = useState(false);
   const [showSlots, setShowSlots] = useState(false);
+  const [parkings, setParkings] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [scans, setScans] = useState([]);
+  const [swaps, setSwaps] = useState([]);
+  const [scanHourlyData, setScanHourlyData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStaffData = async () => {
+      try {
+        const [
+          parkingsData,
+          bookingsData,
+          scansData,
+          swapsData,
+          hourlyData
+        ] = await Promise.all([
+          dataService.getParkings(false),
+          dataService.getBookings(),
+          dataService.getScans(),
+          dataService.getSwaps(),
+          dataService.getScanStats(false)
+        ]);
+
+        setParkings(parkingsData);
+        setBookings(bookingsData);
+        setScans(scansData);
+        setSwaps(swapsData);
+        setScanHourlyData(hourlyData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading staff dashboard data:', error);
+        setLoading(false);
+      }
+    };
+
+    loadStaffData();
+  }, []);
 
   // Data gedung – bisa diupdate via edit modal
-  const baseParkings = PARKINGS;
+  const baseParkings = parkings;
   const [localParking, setLocalParking] = useState(() => baseParkings.find(p => p.id === user?.parkingId) || baseParkings[0]);
   const parking = localParking;
-  const bookings = BOOKINGS.filter(b => b.parkingName === parking.name);
-  const scans = SCAN_LOGS.filter(s => s.parking === parking.name);
-  const swaps = SWAP_LOGS.filter(s => s.fromParking === parking.name || s.toParking === parking.name);
+  
+  useEffect(() => {
+    if (baseParkings.length > 0 && !parking.id) {
+      setLocalParking(baseParkings.find(p => p.id === user?.parkingId) || baseParkings[0]);
+    }
+  }, [baseParkings, user?.parkingId]);
 
-  // Stats
+  const filteredBookings = bookings.filter(b => b.parkingName === parking.name);
+  const filteredScans = scans.filter(s => s.parking === parking.name);
+  const filteredSwaps = swaps.filter(s => s.fromParking === parking.name || s.toParking === parking.name);
+
+  // Stats - use filtered data
   const available = parking.totalSlots - parking.usedSlots;
-  const successScans = scans.filter(s => s.status === 'success').length;
-  const failedScans = scans.filter(s => s.status === 'failed').length;
-  const activeBook = bookings.filter(b => b.status === 'active').length;
+  const successScans = filteredScans.filter(s => s.status === 'success').length;
+  const failedScans = filteredScans.filter(s => s.status === 'failed').length;
+  const activeBook = filteredBookings.filter(b => b.status === 'active').length;
   const occupancyColor = parking.occupancy >= 90 ? 'var(--red)' : parking.occupancy >= 75 ? 'var(--orange)' : 'var(--green)';
 
-  // Search filter
-  const filteredScans = scans.filter(s => s.ticketCode.toLowerCase().includes(search.toLowerCase()) || s.userName.toLowerCase().includes(search.toLowerCase()));
-  const filteredBookings = bookings.filter(b => b.userName.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase()) || b.plate.toLowerCase().includes(search.toLowerCase()));
-  const filteredSwaps = swaps.filter(s => s.userName.toLowerCase().includes(search.toLowerCase()) || s.ticketOld.toLowerCase().includes(search.toLowerCase()));
+  // Search filter - further filter the already-filtered by parking name data
+  const searchFilteredScans = filteredScans.filter(s => s.ticketCode.toLowerCase().includes(search.toLowerCase()) || s.userName.toLowerCase().includes(search.toLowerCase()));
+  const searchFilteredBookings = filteredBookings.filter(b => b.userName.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase()) || b.plate.toLowerCase().includes(search.toLowerCase()));
+  const searchFilteredSwaps = filteredSwaps.filter(s => s.userName.toLowerCase().includes(search.toLowerCase()) || s.ticketOld.toLowerCase().includes(search.toLowerCase()));
 
   // Chart data (hourly dari mock, nanti bisa difilter per gedung)
-  const chartData = HOURLY_SCAN_DATA;
+  const chartData = scanHourlyData;
+  
+  // Determine which filtered data to display based on tab
+  const displayScans = searchFilteredScans;
+  const displayBookings = searchFilteredBookings;
+  const displaySwaps = searchFilteredSwaps;
+  
   return <div>
       {/* Welcome */}
       <div style={{
@@ -424,7 +475,7 @@ export default function StaffDashboard() {
         color: 'var(--green)'
       }}>
           <span className="status-dot status-dot-green" />
-          Monitoring aktif · {tab === 'scan' ? filteredScans.length : tab === 'booking' ? filteredBookings.length : filteredSwaps.length} data ditemukan untuk gedung ini
+          Monitoring aktif · {tab === 'scan' ? searchFilteredScans.length : tab === 'booking' ? searchFilteredBookings.length : searchFilteredSwaps.length} data ditemukan untuk gedung ini
         </div>
 
         {/* ── Scan Tab ── */}
@@ -435,7 +486,7 @@ export default function StaffDashboard() {
                 <th>Aksi</th><th>Waktu Scan</th><th>Status</th>
               </tr></thead>
               <tbody>
-                {filteredScans.length === 0 ? <tr><td colSpan={6}><div className="empty-state"><div className="empty-icon">📡</div><div>Belum ada aktivitas scan</div></div></td></tr> : filteredScans.map(s => <tr key={s.id}>
+                {searchFilteredScans.length === 0 ? <tr><td colSpan={6}><div className="empty-state"><div className="empty-icon">📡</div><div>Belum ada aktivitas scan</div></div></td></tr> : searchFilteredScans.map(s => <tr key={s.id}>
                     <td><span className="ticket-code">{s.ticketCode}</span></td>
                     <td>
                       {s.userName !== '—' ? <div style={{
@@ -476,7 +527,7 @@ export default function StaffDashboard() {
                 <th>Lantai / Slot</th><th>Durasi</th><th>Status</th>
               </tr></thead>
               <tbody>
-                {filteredBookings.length === 0 ? <tr><td colSpan={6}><div className="empty-state"><div className="empty-icon">📋</div><div>Belum ada booking untuk gedung ini</div></div></td></tr> : filteredBookings.map(b => <tr key={b.id}>
+                {searchFilteredBookings.length === 0 ? <tr><td colSpan={6}><div className="empty-state"><div className="empty-icon">📋</div><div>Belum ada booking untuk gedung ini</div></div></td></tr> : searchFilteredBookings.map(b => <tr key={b.id}>
                     <td><span className="ticket-code">{b.id}</span></td>
                     <td>
                       <div style={{
@@ -528,7 +579,7 @@ export default function StaffDashboard() {
                 <th>ID</th><th>Pengguna</th><th>Dari</th><th>Ke</th><th>Waktu</th><th>Status</th>
               </tr></thead>
               <tbody>
-                {filteredSwaps.length === 0 ? <tr><td colSpan={6}><div className="empty-state"><div className="empty-icon">🔄</div><div>Belum ada tukar slot untuk gedung ini</div></div></td></tr> : filteredSwaps.map(s => <tr key={s.id}>
+                {searchFilteredSwaps.length === 0 ? <tr><td colSpan={6}><div className="empty-state"><div className="empty-icon">🔄</div><div>Belum ada tukar slot untuk gedung ini</div></div></td></tr> : searchFilteredSwaps.map(s => <tr key={s.id}>
                     <td style={{
                 fontSize: 12,
                 fontFamily: 'monospace',
