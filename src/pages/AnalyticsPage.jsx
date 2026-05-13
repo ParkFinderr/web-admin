@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import CustomTooltip from "../components/pages/AnalyticsPage/CustomTooltip";
-import { AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import * as dataService from '../services/dataService';
 const MONTHLY_DATA = [{
   name: 'Jan',
@@ -100,6 +100,7 @@ export default function AnalyticsPage() {
   const safeScanHourly = scanHourlyData.length > 0 ? scanHourlyData : [];
 
   return (
+    <>
       <div className="page-header">
         <div>
           <h1 className="page-title">📊 Analitik & Statistik</h1>
@@ -475,5 +476,6 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
-    </div>;
+    </>
+  );
 }
