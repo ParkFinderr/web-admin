@@ -48,7 +48,7 @@ export default function UsersPage() {
     <div>
       <UsersHeader />
       <UsersSummary 
-        total={USERS.length} active={activeCount} inactive={inactiveCount} 
+        total={users.length} active={activeCount} inactive={inactiveCount} 
         mobile={mobileCount} guest={guestCount} 
       />
       <UsersInfoBox />
