@@ -209,11 +209,7 @@ export default function ParkingsPage() {
 
   const handleUpdateSlotStatus = async (slot, newAppStatus) => {
     try {
-      await slotService.update(
-        slot.id,
-        slot.slotName || slot.slotNumber || '',
-        newAppStatus,
-      )
+      await slotService.update(slot.id, newAppStatus)
       fetchSlots(selectedArea.id)
       fetchAreas()
     } catch (err) { alert(err.message) }
