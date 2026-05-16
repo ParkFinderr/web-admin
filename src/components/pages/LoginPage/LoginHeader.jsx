@@ -7,7 +7,7 @@ export default function LoginHeader({ mode }) {
       </div>
       <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>
         Selamat Datang, <span style={{ background: 'linear-gradient(90deg,var(--accent),var(--accent2))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-          {mode === 'admin' ? 'Admin' : 'Staff'}
+          {mode === 'admin' ? 'Admin Parkir' : 'Staff Gedung'}
         </span>
       </h1>
       <p style={{ fontSize: 13, color: 'var(--text3)' }}>Masuk ke panel monitoring ParkFinder</p>

@@ -1,7 +1,7 @@
 export default function LoginRoleToggle({ mode, switchMode }) {
   return (
     <div style={{ display: 'flex', background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: 12, padding: 4, marginBottom: 24, gap: 4 }}>
-      {[['admin', '🛡️  Admin', 'Akses penuh sistem'], ['staff', '👷  Staff Gedung', 'Monitoring 1 gedung']].map(([r, label, sub]) => (
+      {[['admin', '🛡️  Admin Parkir', 'Kelola gedung dan akun'], ['staff', '👷  Staff Gedung', 'Monitoring 1 gedung']].map(([r, label, sub]) => (
         <button key={r} type="button" onClick={() => switchMode(r)} style={{
           flex: 1, padding: '10px 8px', borderRadius: 9, border: 'none', cursor: 'pointer',
           background: mode === r ? 'var(--bg-card)' : 'transparent', boxShadow: mode === r ? '0 2px 8px rgba(0,0,0,0.25)' : 'none',

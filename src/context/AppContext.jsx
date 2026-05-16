@@ -10,6 +10,22 @@ export function AppProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('pf_token') || null)
   const [theme, setTheme] = useState(() => localStorage.getItem('pf_theme') || 'dark')
 
+  const clearSession = () => {
+    localStorage.removeItem('pf_token')
+    localStorage.removeItem('pf_user')
+    setToken(null)
+    setUser(null)
+  }
+
+  useEffect(() => {
+    if (!token) return
+
+    const looksLikeJwt = token.split('.').length === 3
+    if (token.startsWith('demo-') || !looksLikeJwt) {
+      clearSession()
+    }
+  }, [])
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('pf_theme', theme)
@@ -25,8 +41,15 @@ export function AppProvider({ children }) {
     try {
       const res = await authService.login(email, password)
       const data = res.data || res
-      const t = data.token
-      const u = data.user || { email, role: data.role || 'admin' }
+      const t = data.token || data.accessToken || data.jwt || null
+      const u = data.user || data.account || {
+        email,
+        role: data.role || data.data?.role || 'admin',
+      }
+
+      if (!t) {
+        return { ok: false, msg: 'Token tidak ditemukan di respons login.' }
+      }
       
       localStorage.setItem('pf_token', t)
       localStorage.setItem('pf_user', JSON.stringify(u))
@@ -40,10 +63,7 @@ export function AppProvider({ children }) {
 
   const logout = async () => {
     try { await authService.logout() } catch { /* ignore */ }
-    localStorage.removeItem('pf_token')
-    localStorage.removeItem('pf_user')
-    setToken(null)
-    setUser(null)
+    clearSession()
   }
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')

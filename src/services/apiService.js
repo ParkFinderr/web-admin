@@ -86,11 +86,11 @@ export const parkingService = {
   getById: (areaId) =>
     fetchAPI('GET', `/areas/${areaId}`),
   
-  create: (name, location, slot) =>
-    fetchAPI('POST', '/areas', { name, location, slot }),
+  create: (name, address, totalFloors, contactEmail, isActive) =>
+    fetchAPI('POST', '/areas', { name, address, totalFloors, contactEmail, isActive }),
   
   update: (areaId, name, location) =>
-    fetchAPI('PUT', `/areas/${areaId}`, { name, location }),
+    fetchAPI('PUT', `/areas/${areaId}`, { name, address: location, location }),
   
   delete: (areaId) =>
     fetchAPI('DELETE', `/areas/${areaId}`),
@@ -98,8 +98,8 @@ export const parkingService = {
 
 // ─── Parking Slot Management ──────────────────────────────
 export const slotService = {
-  add: (areaId, slotNumber, vehicleType) =>
-    fetchAPI('POST', '/areas/slots', { areaId, slotNumber, vehicleType }),
+  add: (areaId, floor, slotName, sensorId) =>
+    fetchAPI('POST', '/areas/slots', { areaId, floor, slotName, sensorId }),
   
   update: (slotId, slotNumber, status) =>
     fetchAPI('PUT', `/areas/slots/${slotId}`, { slotNumber, status }),

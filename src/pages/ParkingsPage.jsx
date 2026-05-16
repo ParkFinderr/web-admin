@@ -1,5 +1,5 @@
+import { Car, ChevronRight, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Car, Plus, Trash2, Pencil, ChevronRight, MapPin, X, RefreshCw } from 'lucide-react'
 import { parkingService, slotService } from '../services/apiService'
 
 export default function ParkingsPage() {
@@ -15,15 +15,39 @@ export default function ParkingsPage() {
   const [showAddSlot, setShowAddSlot] = useState(false)
 
   // Forms
-  const [areaForm, setAreaForm] = useState({ name: '', location: '', slot: '' })
-  const [slotForm, setSlotForm] = useState({ slotNumber: '', vehicleType: 'mobil' })
+  const [areaForm, setAreaForm] = useState({ name: '', address: '', totalFloors: '', contactEmail: '', isActive: true })
+  const [slotForm, setSlotForm] = useState({ floor: '', slotName: '' })
   const [saving, setSaving] = useState(false)
+
+  const generateSensorId = (area, floor, slotName) => {
+    const areaToken = String(area?.id ?? area?.name ?? 'AREA')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .slice(0, 8)
+      .toUpperCase() || 'AREA'
+    const floorToken = String(floor || '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toUpperCase() || 'F'
+    const slotToken = String(slotName || '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toUpperCase() || 'SLOT'
+    return `SENSOR-${areaToken}-${floorToken}-${slotToken}`
+  }
+
+  const generatedSensorId = generateSensorId(selectedArea, slotForm.floor, slotForm.slotName)
 
   const fetchAreas = async () => {
     setLoading(true)
     try {
       const res = await parkingService.getAll()
-      setAreas(res.data || res || [])
+      const data = res.data || res || []
+      setAreas(data.map(area => ({
+        ...area,
+        location: area.location || area.address || '',
+        address: area.address || area.location || '',
+        totalFloors: area.totalFloors ?? area.totalSlots ?? 0,
+        contactEmail: area.contactEmail || '',
+        isActive: area.isActive ?? true,
+      })))
     } catch (err) {
       console.error('Gagal fetch areas:', err)
     } finally {
@@ -54,11 +78,33 @@ export default function ParkingsPage() {
   // Area CRUD
   const handleAddArea = async (e) => {
     e.preventDefault()
+    if (!areaForm.name.trim()) {
+      alert('Nama area wajib diisi.')
+      return
+    }
+    if (!areaForm.address.trim()) {
+      alert('Alamat wajib diisi.')
+      return
+    }
+    if (!areaForm.totalFloors || Number(areaForm.totalFloors) < 1) {
+      alert('Jumlah lantai wajib diisi.')
+      return
+    }
+    if (!areaForm.contactEmail.trim()) {
+      alert('Email kontak wajib diisi.')
+      return
+    }
     setSaving(true)
     try {
-      await parkingService.create(areaForm.name, areaForm.location, parseInt(areaForm.slot) || 0)
+      await parkingService.create(
+        areaForm.name.trim(),
+        areaForm.address.trim(),
+        parseInt(areaForm.totalFloors) || 0,
+        areaForm.contactEmail.trim(),
+        areaForm.isActive,
+      )
       setShowAddArea(false)
-      setAreaForm({ name: '', location: '', slot: '' })
+      setAreaForm({ name: '', address: '', totalFloors: '', contactEmail: '', isActive: true })
       fetchAreas()
     } catch (err) { alert(err.message) }
     finally { setSaving(false) }
@@ -68,12 +114,17 @@ export default function ParkingsPage() {
     e.preventDefault()
     setSaving(true)
     try {
-      await parkingService.update(showEditArea.id, areaForm.name, areaForm.location)
+      await parkingService.update(showEditArea.id, areaForm.name, areaForm.address)
       setShowEditArea(null)
-      setAreaForm({ name: '', location: '', slot: '' })
+      setAreaForm({ name: '', address: '', totalFloors: '', contactEmail: '', isActive: true })
       fetchAreas()
       if (selectedArea?.id === showEditArea.id) {
-        setSelectedArea(prev => ({ ...prev, name: areaForm.name, location: areaForm.location }))
+        setSelectedArea(prev => ({
+          ...prev,
+          name: areaForm.name,
+          location: areaForm.address,
+          address: areaForm.address,
+        }))
       }
     } catch (err) { alert(err.message) }
     finally { setSaving(false) }
@@ -91,11 +142,19 @@ export default function ParkingsPage() {
   // Slot CRUD
   const handleAddSlot = async (e) => {
     e.preventDefault()
+    if (!slotForm.floor) {
+      alert('Floor wajib diisi.')
+      return
+    }
+    if (!slotForm.slotName.trim()) {
+      alert('Nama slot wajib diisi.')
+      return
+    }
     setSaving(true)
     try {
-      await slotService.add(selectedArea.id, slotForm.slotNumber, slotForm.vehicleType)
+      await slotService.add(selectedArea.id, Number(slotForm.floor), slotForm.slotName.trim(), generatedSensorId)
       setShowAddSlot(false)
-      setSlotForm({ slotNumber: '', vehicleType: 'mobil' })
+      setSlotForm({ floor: '', slotName: '' })
       fetchSlots(selectedArea.id)
       fetchAreas() // refresh count
     } catch (err) { alert(err.message) }
@@ -140,7 +199,7 @@ export default function ParkingsPage() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost" onClick={fetchAreas}><RefreshCw size={14} /> Refresh</button>
-          <button className="btn btn-primary" onClick={() => { setAreaForm({ name: '', location: '', slot: '' }); setShowAddArea(true) }}>
+          <button className="btn btn-primary" onClick={() => { setAreaForm({ name: '', address: '', totalFloors: '', contactEmail: '', isActive: true }); setShowAddArea(true) }}>
             <Plus size={14} /> Tambah Area
           </button>
         </div>
@@ -176,10 +235,10 @@ export default function ParkingsPage() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{area.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>{area.location || '—'} · {area.totalSlots || 0} slot</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>{area.address || area.location || '—'} · {area.totalFloors || area.totalSlots || 0} lantai</div>
                   </div>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setAreaForm({ name: area.name, location: area.location || '', slot: '' }); setShowEditArea(area) }}>
+                    <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setAreaForm({ name: area.name, address: area.address || area.location || '', totalFloors: String(area.totalFloors || area.totalSlots || ''), contactEmail: area.contactEmail || '', isActive: area.isActive ?? true }); setShowEditArea(area) }}>
                       <Pencil size={12} />
                     </button>
                     <button className="btn btn-danger btn-sm" onClick={(e) => { e.stopPropagation(); handleDeleteArea(area.id) }}>
@@ -200,7 +259,7 @@ export default function ParkingsPage() {
               {selectedArea ? `Slot — ${selectedArea.name}` : 'Pilih Area'}
             </span>
             {selectedArea && (
-              <button className="btn btn-primary btn-sm" onClick={() => { setSlotForm({ slotNumber: '', vehicleType: 'mobil' }); setShowAddSlot(true) }}>
+              <button className="btn btn-primary btn-sm" onClick={() => { setSlotForm({ floor: '', slotName: '' }); setShowAddSlot(true) }}>
                 <Plus size={12} /> Tambah Slot
               </button>
             )}
@@ -261,8 +320,16 @@ export default function ParkingsPage() {
         <Modal title="Tambah Area Parkir" onClose={() => setShowAddArea(false)}>
           <form onSubmit={handleAddArea}>
             <FormField label="Nama Area" value={areaForm.name} onChange={v => setAreaForm(f => ({ ...f, name: v }))} placeholder="Gedung A" required />
-            <FormField label="Lokasi" value={areaForm.location} onChange={v => setAreaForm(f => ({ ...f, location: v }))} placeholder="Jl. Contoh No. 1" />
-            <FormField label="Jumlah Slot Awal" value={areaForm.slot} onChange={v => setAreaForm(f => ({ ...f, slot: v }))} placeholder="20" type="number" />
+            <FormField label="Alamat" value={areaForm.address} onChange={v => setAreaForm(f => ({ ...f, address: v }))} placeholder="Jl. Contoh No. 1" required />
+            <FormField label="Jumlah Lantai" value={areaForm.totalFloors} onChange={v => setAreaForm(f => ({ ...f, totalFloors: v }))} placeholder="3" type="number" required />
+            <FormField label="Email Kontak" value={areaForm.contactEmail} onChange={v => setAreaForm(f => ({ ...f, contactEmail: v }))} placeholder="admin.area@parkfinder.id" type="email" required />
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Status Aktif</label>
+              <select className="input" value={areaForm.isActive ? 'true' : 'false'} onChange={e => setAreaForm(f => ({ ...f, isActive: e.target.value === 'true' }))}>
+                <option value="true">Aktif</option>
+                <option value="false">Nonaktif</option>
+              </select>
+            </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
               <button type="button" className="btn btn-ghost" onClick={() => setShowAddArea(false)}>Batal</button>
               <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
@@ -276,7 +343,7 @@ export default function ParkingsPage() {
         <Modal title="Edit Area Parkir" onClose={() => setShowEditArea(null)}>
           <form onSubmit={handleEditArea}>
             <FormField label="Nama Area" value={areaForm.name} onChange={v => setAreaForm(f => ({ ...f, name: v }))} required />
-            <FormField label="Lokasi" value={areaForm.location} onChange={v => setAreaForm(f => ({ ...f, location: v }))} />
+            <FormField label="Lokasi" value={areaForm.address} onChange={v => setAreaForm(f => ({ ...f, address: v }))} />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
               <button type="button" className="btn btn-ghost" onClick={() => setShowEditArea(null)}>Batal</button>
               <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
@@ -289,13 +356,14 @@ export default function ParkingsPage() {
       {showAddSlot && (
         <Modal title={`Tambah Slot — ${selectedArea?.name}`} onClose={() => setShowAddSlot(false)}>
           <form onSubmit={handleAddSlot}>
-            <FormField label="Nomor Slot" value={slotForm.slotNumber} onChange={v => setSlotForm(f => ({ ...f, slotNumber: v }))} placeholder="A-01" required />
+            <FormField label="Floor" value={slotForm.floor} onChange={v => setSlotForm(f => ({ ...f, floor: v }))} placeholder="1" type="number" required />
+            <FormField label="Nama Slot" value={slotForm.slotName} onChange={v => setSlotForm(f => ({ ...f, slotName: v }))} placeholder="A-02" required />
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Tipe Kendaraan</label>
-              <select className="input" value={slotForm.vehicleType} onChange={e => setSlotForm(f => ({ ...f, vehicleType: e.target.value }))}>
-                <option value="mobil">Mobil</option>
-                <option value="motor">Motor</option>
-              </select>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Sensor ID</label>
+              <input className="input" value={generatedSensorId} readOnly />
+              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text3)' }}>
+                Akan digenerate otomatis saat disimpan.
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
               <button type="button" className="btn btn-ghost" onClick={() => setShowAddSlot(false)}>Batal</button>
