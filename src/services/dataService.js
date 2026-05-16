@@ -14,6 +14,7 @@ import {
     USERS,
 } from '../data/mockData';
 import {
+    bookingService,
     parkingService,
     statsService,
     userService,
@@ -125,7 +126,17 @@ export const getPlatformData = async (useAPI = false) => {
 };
 
 // ─── Booking Data (currently in mock) ──────────────
-export const getBookings = () => BOOKINGS;
+export const getBookings = async (useAPI = false, query = '') => {
+  if (useAPI) {
+    try {
+      const q = typeof query === 'string' ? query : '';
+      return await bookingService.list(q);
+    } catch (error) {
+      console.warn('Bookings API failed, using mock data:', error);
+    }
+  }
+  return BOOKINGS;
+};
 
 // ─── Scan Data (currently in mock) ────────────────
 export const getScans = () => SCAN_LOGS;

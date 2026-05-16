@@ -48,7 +48,7 @@ export default function BookingsPage() {
   useEffect(() => {
     const loadBookings = async () => {
       try {
-        const data = await dataService.getBookings();
+        const data = await dataService.getBookings(true);
         setBookings(data);
         setLoading(false);
       } catch (error) {

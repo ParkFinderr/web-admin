@@ -22,20 +22,20 @@ const fmtTime = iso => {
 };
 export default function StaffDashboard() {
   const {
-    user
-  } = useApp();
-  const [tab, setTab] = useState('scan');
-  const [search, setSearch] = useState('');
-  const [showEdit, setShowEdit] = useState(false);
-  const [showSlots, setShowSlots] = useState(false);
-  const [parkings, setParkings] = useState([]);
-  const [bookings, setBookings] = useState([]);
-  const [scans, setScans] = useState([]);
-  const [swaps, setSwaps] = useState([]);
-  const [scanHourlyData, setScanHourlyData] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+        
+        const [
+          parkingsData,
+          bookingsData,
+          scansData,
+          swapsData,
+          hourlyData
+        ] = await Promise.all([
+          dataService.getParkings(true),
+          dataService.getBookings(true),
+          dataService.getScans(),
+          dataService.getSwaps(),
+          dataService.getScanStats(true)
+        ]);
     const loadStaffData = async () => {
       try {
         const [

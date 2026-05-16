@@ -128,3 +128,17 @@ export const statsService = {
   getAnalytics: (period = 'week') =>
     fetchAPI('GET', `/stats/analytics?period=${period}`),
 };
+
+// ─── Booking / Reservation Service ───────────────────────
+export const bookingService = {
+  // Fetch all reservations (optionally filter by area/parking)
+  list: (query = '') =>
+    fetchAPI('GET', `/reservations${query ? `?${query}` : ''}`),
+
+  getById: (reservationId) =>
+    fetchAPI('GET', `/reservations/${reservationId}`),
+
+  // Update reservation status (arrive/complete/cancel) - generic PATCH
+  patch: (reservationId, data) =>
+    fetchAPI('PATCH', `/reservations/${reservationId}`, data),
+};
