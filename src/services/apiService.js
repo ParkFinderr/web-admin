@@ -121,10 +121,12 @@ export const parkingService = {
 export const slotService = {
   add: (areaId, floor, slotName, sensorId, status = 'available') =>
     fetchAPI('POST', '/areas/slots', { areaId, floor, slotName, sensorId, status }),
-  
-  update: (slotId, slotNumber, status) =>
-    fetchAPI('PUT', `/areas/slots/${slotId}`, { slotNumber, status }),
-  
+
+  // PUT /areas/{slotId} — update slot (super admin)
+  // Body: { sensorId, slotName, appStatus }
+  update: (slotId, sensorId, slotName, appStatus) =>
+    fetchAPI('PUT', `/areas/${slotId}`, { sensorId, slotName, appStatus }),
+
   delete: (slotId) =>
     fetchAPI('DELETE', `/areas/slots/${slotId}`),
   

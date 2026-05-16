@@ -207,9 +207,14 @@ export default function ParkingsPage() {
     } catch (err) { alert(err.message) }
   }
 
-  const handleUpdateSlotStatus = async (slotId, newStatus) => {
+  const handleUpdateSlotStatus = async (slot, newAppStatus) => {
     try {
-      await slotService.update(slotId, undefined, newStatus)
+      await slotService.update(
+        slot.id,
+        slot.sensorId || '',
+        slot.slotName || slot.slotNumber || '',
+        newAppStatus,
+      )
       fetchSlots(selectedArea.id)
       fetchAreas()
     } catch (err) { alert(err.message) }
@@ -331,13 +336,13 @@ export default function ParkingsPage() {
                         <td>{getStatusBadge(slot.status || slot.appStatus)}</td>
                         <td>
                           <div style={{ display: 'flex', gap: 4 }}>
-                            {(slot.status === 'available' || slot.appStatus === 'available') && (
-                              <button className="btn btn-ghost btn-sm" onClick={() => handleUpdateSlotStatus(slot.id, 'maintenance')}>
+                            {isSuperAdmin && (slot.status === 'available' || slot.appStatus === 'available') && (
+                              <button className="btn btn-ghost btn-sm" onClick={() => handleUpdateSlotStatus(slot, 'maintenance')}>
                                 Maintenance
                               </button>
                             )}
-                            {(slot.status === 'maintenance') && (
-                              <button className="btn btn-ghost btn-sm" onClick={() => handleUpdateSlotStatus(slot.id, 'available')}>
+                            {isSuperAdmin && (slot.status === 'maintenance' || slot.appStatus === 'maintenance') && (
+                              <button className="btn btn-ghost btn-sm" onClick={() => handleUpdateSlotStatus(slot, 'available')}>
                                 Aktifkan
                               </button>
                             )}
