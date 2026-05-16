@@ -11,6 +11,78 @@ const normalizeRole = (roleValue) => {
   return roleValue || 'admin'
 }
 
+const pickFirst = (...values) => values.find((v) => v !== undefined && v !== null && v !== '')
+
+const buildUserFromLogin = (responseData, fallbackEmail) => {
+  const source = responseData || {}
+  const rawUser =
+    source.user ||
+    source.account ||
+    source.admin ||
+    source.data?.user ||
+    source.data?.account ||
+    { email: fallbackEmail }
+
+  const role = normalizeRole(
+    pickFirst(
+      rawUser.role,
+      rawUser.userRole,
+      source.role,
+      source.data?.role,
+      source.userRole,
+    ),
+  )
+
+  const areaId = pickFirst(
+    rawUser.areaId,
+    rawUser.parkingId,
+    rawUser.assignedAreaId,
+    rawUser.adminAreaId,
+    rawUser.area?.id,
+    rawUser.parking?.id,
+    source.areaId,
+    source.parkingId,
+    source.assignedAreaId,
+    source.adminAreaId,
+    source.area?.id,
+    source.parking?.id,
+    source.data?.areaId,
+    source.data?.parkingId,
+    source.data?.assignedAreaId,
+    source.data?.adminAreaId,
+    source.data?.area?.id,
+    source.data?.parking?.id,
+  )
+
+  const parkingName = pickFirst(
+    rawUser.parkingName,
+    rawUser.areaName,
+    rawUser.assignedAreaName,
+    rawUser.area?.name,
+    rawUser.parking?.name,
+    source.parkingName,
+    source.areaName,
+    source.assignedAreaName,
+    source.area?.name,
+    source.parking?.name,
+    source.data?.parkingName,
+    source.data?.areaName,
+    source.data?.assignedAreaName,
+    source.data?.area?.name,
+    source.data?.parking?.name,
+  )
+
+  return {
+    ...rawUser,
+    email: rawUser.email || fallbackEmail,
+    role,
+    areaId,
+    parkingId: areaId,
+    assignedAreaId: areaId,
+    parkingName,
+  }
+}
+
 const detectIsSuperAdmin = (userValue) => {
   if (!userValue) return false
 
@@ -77,11 +149,7 @@ export function AppProvider({ children }) {
       const res = await authService.login(email, password)
       const data = res.data || res
       const t = data.token || data.accessToken || data.jwt || null
-      const uRaw = data.user || data.account || {
-        email,
-        role: data.role || data.data?.role || 'admin',
-      }
-      const u = { ...uRaw, role: normalizeRole(uRaw.role || data.role || data.data?.role) }
+      const u = buildUserFromLogin(data, email)
 
       if (!t) {
         return { ok: false, msg: 'Token tidak ditemukan di respons login.' }
