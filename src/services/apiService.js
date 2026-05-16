@@ -50,8 +50,8 @@ export const adminService = {
   getById: (adminId) => 
     fetchAPI('GET', `/superAdmin/admins/${adminId}`),
   
-  create: (name, email, password) =>
-    fetchAPI('POST', '/superAdmin/admins', { name, email, password }),
+  create: (name, email, password, areaId) =>
+    fetchAPI('POST', '/superAdmin/admins', { name, email, password, areaId }),
   
   update: (adminId, data) =>
     fetchAPI('PUT', `/superAdmin/admins/${adminId}`, data),
@@ -78,6 +78,27 @@ export const userService = {
     fetchAPI('PUT', '/users/profile', { name, phoneNumber }),
 };
 
+// ─── Staff Management ───────────────────────────────────────
+export const staffService = {
+  getAll: () =>
+    fetchAPI('GET', '/staff'),
+  
+  getById: (staffId) =>
+    fetchAPI('GET', `/staff/${staffId}`),
+  
+  create: (name, email, password, phone, parkingId, shifts) =>
+    fetchAPI('POST', '/staff', { name, email, password, phone, parkingId, shifts }),
+  
+  update: (staffId, data) =>
+    fetchAPI('PUT', `/staff/${staffId}`, data),
+  
+  delete: (staffId) =>
+    fetchAPI('DELETE', `/staff/${staffId}`),
+  
+  changePassword: (staffId, newPassword) =>
+    fetchAPI('PUT', `/staff/${staffId}/password`, { newPassword }),
+};
+
 // ─── Parking Area Management ──────────────────────────────
 export const parkingService = {
   getAll: () => 
@@ -89,8 +110,8 @@ export const parkingService = {
   create: (name, address, totalFloors, contactEmail, isActive) =>
     fetchAPI('POST', '/areas', { name, address, totalFloors, contactEmail, isActive }),
   
-  update: (areaId, name, location) =>
-    fetchAPI('PUT', `/areas/${areaId}`, { name, address: location, location }),
+  update: (areaId, name, address) =>
+    fetchAPI('PUT', `/areas/${areaId}`, { name, address }),
   
   delete: (areaId) =>
     fetchAPI('DELETE', `/areas/${areaId}`),
@@ -98,8 +119,8 @@ export const parkingService = {
 
 // ─── Parking Slot Management ──────────────────────────────
 export const slotService = {
-  add: (areaId, floor, slotName, sensorId) =>
-    fetchAPI('POST', '/areas/slots', { areaId, floor, slotName, sensorId }),
+  add: (areaId, floor, slotName, sensorId, status = 'available') =>
+    fetchAPI('POST', '/areas/slots', { areaId, floor, slotName, sensorId, status }),
   
   update: (slotId, slotNumber, status) =>
     fetchAPI('PUT', `/areas/slots/${slotId}`, { slotNumber, status }),

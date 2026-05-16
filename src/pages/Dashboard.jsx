@@ -1,8 +1,8 @@
+import { AlertTriangle, Car, MapPin, ParkingCircle, RefreshCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Car, MapPin, ParkingCircle, AlertTriangle, RefreshCw } from 'lucide-react'
-import { parkingService, slotService } from '../services/apiService'
 import { useApp } from '../context/AppContext'
+import { parkingService, slotService } from '../services/apiService'
 
 export default function Dashboard() {
   const { user } = useApp()
@@ -15,9 +15,39 @@ export default function Dashboard() {
     setLoading(true)
     setError('')
     try {
+      // Fetch all areas
       const res = await parkingService.getAll()
       const list = res.data || res || []
-      setAreas(Array.isArray(list) ? list : [])
+      const areasList = Array.isArray(list) ? list : []
+      
+      // Fetch slots for each area to calculate occupancy
+      const areasWithSlots = await Promise.all(
+        areasList.map(async (area) => {
+          try {
+            const slotsRes = await slotService.getByArea(area.id)
+            const slots = (slotsRes.data || slotsRes || [])
+            const totalSlots = slots.length || area.totalSlots || 0
+            const usedSlots = slots.filter(s => (s.status || s.appStatus) === 'occupied').length
+            return {
+              ...area,
+              totalSlots: totalSlots || area.totalSlots || 0,
+              usedSlots: usedSlots || area.usedSlots || 0,
+              slots: slots,
+            }
+          } catch (err) {
+            console.warn(`Gagal fetch slots untuk area ${area.id}:`, err)
+            // Fallback to area data if slot fetch fails
+            return {
+              ...area,
+              totalSlots: area.totalSlots || 0,
+              usedSlots: area.usedSlots || 0,
+              slots: [],
+            }
+          }
+        })
+      )
+      
+      setAreas(areasWithSlots)
     } catch (err) {
       setError(err.message || 'Gagal memuat data')
     } finally {
@@ -27,11 +57,11 @@ export default function Dashboard() {
 
   useEffect(() => { fetchData() }, [])
 
-  // Compute stats
+  // Compute stats from actual data
   const totalAreas = areas.length
   const totalSlots = areas.reduce((s, a) => s + (a.totalSlots || 0), 0)
-  const availableSlots = areas.reduce((s, a) => s + (a.availableSlots || 0), 0)
-  const occupiedSlots = totalSlots - availableSlots
+  const occupiedSlots = areas.reduce((s, a) => s + (a.usedSlots || 0), 0)
+  const availableSlots = totalSlots - occupiedSlots
   const occupancyPct = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0
 
   const stats = [
@@ -111,8 +141,9 @@ export default function Dashboard() {
             ) : (
               areas.map((area) => {
                 const total = area.totalSlots || 0
-                const avail = area.availableSlots || 0
-                const pct = total > 0 ? Math.round(((total - avail) / total) * 100) : 0
+                const used = area.usedSlots || 0
+                const avail = total - used
+                const pct = total > 0 ? Math.round((used / total) * 100) : 0
                 return (
                   <div key={area.id} className="parking-row">
                     <div className="parking-row-name">

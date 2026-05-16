@@ -1,8 +1,10 @@
 import { Car, ChevronRight, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useApp } from '../context/AppContext'
 import { parkingService, slotService } from '../services/apiService'
 
 export default function ParkingsPage() {
+  const { user, isSuperAdmin } = useApp()
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedArea, setSelectedArea] = useState(null)
@@ -16,7 +18,7 @@ export default function ParkingsPage() {
 
   // Forms
   const [areaForm, setAreaForm] = useState({ name: '', address: '', totalFloors: '', contactEmail: '', isActive: true })
-  const [slotForm, setSlotForm] = useState({ floor: '', slotName: '' })
+  const [slotForm, setSlotForm] = useState({ floor: '', slotName: '', status: 'available' })
   const [saving, setSaving] = useState(false)
 
   const generateSensorId = (area, floor, slotName) => {
@@ -35,19 +37,42 @@ export default function ParkingsPage() {
 
   const generatedSensorId = generateSensorId(selectedArea, slotForm.floor, slotForm.slotName)
 
+  const assignedAreaId =
+    user?.areaId ||
+    user?.parkingId ||
+    user?.assignedAreaId ||
+    user?.adminAreaId ||
+    ''
+
+  const isAssignedArea = (area) => {
+    if (isSuperAdmin) return true
+    const byId = assignedAreaId && String(area?.id) === String(assignedAreaId)
+    const byName = user?.parkingName && area?.name === user?.parkingName
+    return !!(byId || byName)
+  }
+
   const fetchAreas = async () => {
     setLoading(true)
     try {
       const res = await parkingService.getAll()
       const data = res.data || res || []
-      setAreas(data.map(area => ({
+      const mappedAreas = data.map(area => ({
         ...area,
         location: area.location || area.address || '',
         address: area.address || area.location || '',
         totalFloors: area.totalFloors ?? area.totalSlots ?? 0,
         contactEmail: area.contactEmail || '',
         isActive: area.isActive ?? true,
-      })))
+      }))
+
+      const visibleAreas = isSuperAdmin ? mappedAreas : mappedAreas.filter(isAssignedArea)
+      setAreas(visibleAreas)
+
+      setSelectedArea((prev) => {
+        if (!visibleAreas.length) return null
+        if (!prev) return visibleAreas[0]
+        return visibleAreas.find((area) => String(area.id) === String(prev.id)) || visibleAreas[0]
+      })
     } catch (err) {
       console.error('Gagal fetch areas:', err)
     } finally {
@@ -68,7 +93,7 @@ export default function ParkingsPage() {
     }
   }
 
-  useEffect(() => { fetchAreas() }, [])
+  useEffect(() => { fetchAreas() }, [isSuperAdmin, user?.areaId, user?.parkingId, user?.parkingName])
 
   useEffect(() => {
     if (selectedArea?.id) fetchSlots(selectedArea.id)
@@ -78,6 +103,10 @@ export default function ParkingsPage() {
   // Area CRUD
   const handleAddArea = async (e) => {
     e.preventDefault()
+    if (!isSuperAdmin) {
+      alert('Hanya Super Admin yang dapat menambahkan area parkir.')
+      return
+    }
     if (!areaForm.name.trim()) {
       alert('Nama area wajib diisi.')
       return
@@ -112,6 +141,10 @@ export default function ParkingsPage() {
 
   const handleEditArea = async (e) => {
     e.preventDefault()
+    if (!isSuperAdmin) {
+      alert('Hanya Super Admin yang dapat mengedit area parkir.')
+      return
+    }
     setSaving(true)
     try {
       await parkingService.update(showEditArea.id, areaForm.name, areaForm.address)
@@ -131,6 +164,10 @@ export default function ParkingsPage() {
   }
 
   const handleDeleteArea = async (areaId) => {
+    if (!isSuperAdmin) {
+      alert('Hanya Super Admin yang dapat menghapus area parkir.')
+      return
+    }
     if (!confirm('Yakin hapus area ini? Semua slot di dalamnya akan ikut terhapus.')) return
     try {
       await parkingService.delete(areaId)
@@ -152,9 +189,9 @@ export default function ParkingsPage() {
     }
     setSaving(true)
     try {
-      await slotService.add(selectedArea.id, Number(slotForm.floor), slotForm.slotName.trim(), generatedSensorId)
+      await slotService.add(selectedArea.id, Number(slotForm.floor), slotForm.slotName.trim(), generatedSensorId, slotForm.status)
       setShowAddSlot(false)
-      setSlotForm({ floor: '', slotName: '' })
+      setSlotForm({ floor: '', slotName: '', status: 'available' })
       fetchSlots(selectedArea.id)
       fetchAreas() // refresh count
     } catch (err) { alert(err.message) }
@@ -195,13 +232,15 @@ export default function ParkingsPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Gedung Parkir</h1>
-          <p className="page-sub">Kelola area parkir dan slot</p>
+          <p className="page-sub">{isSuperAdmin ? 'Kelola area parkir dan slot' : 'Lihat area tugas dan kelola slot parkir'}</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost" onClick={fetchAreas}><RefreshCw size={14} /> Refresh</button>
-          <button className="btn btn-primary" onClick={() => { setAreaForm({ name: '', address: '', totalFloors: '', contactEmail: '', isActive: true }); setShowAddArea(true) }}>
-            <Plus size={14} /> Tambah Area
-          </button>
+          {isSuperAdmin && (
+            <button className="btn btn-primary" onClick={() => { setAreaForm({ name: '', address: '', totalFloors: '', contactEmail: '', isActive: true }); setShowAddArea(true) }}>
+              <Plus size={14} /> Tambah Area
+            </button>
+          )}
         </div>
       </div>
 
@@ -216,7 +255,7 @@ export default function ParkingsPage() {
             {loading ? (
               <div className="empty-state"><div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /></div>
             ) : areas.length === 0 ? (
-              <div className="empty-state"><div className="empty-icon">🏗️</div><p>Belum ada area parkir</p></div>
+              <div className="empty-state"><div className="empty-icon">🏗️</div><p>{isSuperAdmin ? 'Belum ada area parkir' : 'Area tugas belum tersedia'}</p></div>
             ) : (
               areas.map(area => (
                 <div
@@ -237,14 +276,16 @@ export default function ParkingsPage() {
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{area.name}</div>
                     <div style={{ fontSize: 12, color: 'var(--text3)' }}>{area.address || area.location || '—'} · {area.totalFloors || area.totalSlots || 0} lantai</div>
                   </div>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setAreaForm({ name: area.name, address: area.address || area.location || '', totalFloors: String(area.totalFloors || area.totalSlots || ''), contactEmail: area.contactEmail || '', isActive: area.isActive ?? true }); setShowEditArea(area) }}>
-                      <Pencil size={12} />
-                    </button>
-                    <button className="btn btn-danger btn-sm" onClick={(e) => { e.stopPropagation(); handleDeleteArea(area.id) }}>
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
+                  {isSuperAdmin && (
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setAreaForm({ name: area.name, address: area.address || area.location || '', totalFloors: String(area.totalFloors || area.totalSlots || ''), contactEmail: area.contactEmail || '', isActive: area.isActive ?? true }); setShowEditArea(area) }}>
+                        <Pencil size={12} />
+                      </button>
+                      <button className="btn btn-danger btn-sm" onClick={(e) => { e.stopPropagation(); handleDeleteArea(area.id) }}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  )}
                   <ChevronRight size={14} style={{ color: 'var(--text3)' }} />
                 </div>
               ))
@@ -364,6 +405,14 @@ export default function ParkingsPage() {
               <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text3)' }}>
                 Akan digenerate otomatis saat disimpan.
               </div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Status Awal</label>
+              <select className="input" value={slotForm.status} onChange={e => setSlotForm(f => ({ ...f, status: e.target.value }))}>
+                <option value="available">Tersedia</option>
+                <option value="occupied">Terisi</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
               <button type="button" className="btn btn-ghost" onClick={() => setShowAddSlot(false)}>Batal</button>

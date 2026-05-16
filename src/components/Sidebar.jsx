@@ -1,7 +1,13 @@
-import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Car, Users, UserCog, UserCircle, LogOut
+    Car,
+    LayoutDashboard,
+    LogOut,
+    ShieldCheck,
+    UserCircle,
+    UserCog,
+    Users,
 } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 
 const LOGO_URL = 'https://storage.googleapis.com/parkfinderbucket/foto/logo.png'
@@ -23,8 +29,9 @@ export default function Sidebar({ open, onClose }) {
     ...(isSuperAdmin ? [{
       section: 'Manajemen',
       items: [
-        { path: '/admins', label: 'Admin Parkir', icon: UserCog },
+        { path: '/staff', label: 'Staff Parkir', icon: ShieldCheck },
         { path: '/users', label: 'Data Pengguna', icon: Users },
+        { path: '/admins', label: 'Admin Parkir', icon: UserCog },
       ],
     }] : []),
     {
@@ -97,7 +104,7 @@ export default function Sidebar({ open, onClose }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{user?.name || 'Admin'}</div>
               <div style={{ fontSize: 11, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user?.role === 'superAdmin' ? 'Super Admin' : 'Admin Parkir'}
+                {isSuperAdmin ? 'Super Admin' : 'Admin Parkir'}
               </div>
             </div>
             <button onClick={handleLogout} title="Logout" style={{

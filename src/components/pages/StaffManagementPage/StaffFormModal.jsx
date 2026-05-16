@@ -1,7 +1,6 @@
+import { Edit2, Plus, UserPlus, X } from 'lucide-react';
 import { useState } from 'react';
 import { PARKINGS } from '../../../data/mockData';
-import { useApp } from '../../../context/AppContext';
-import { Search, Plus, X, UserPlus, Edit2, Trash2, Lock, Eye, EyeOff } from 'lucide-react';
 const PARKING_LIST = PARKINGS || [];
 const fmtDate = iso => {
   if (!iso) return '—';
@@ -122,6 +121,7 @@ export default function StaffFormModal({
     const pkg = PARKING_LIST.find(p => p.id === Number(form.parkingId));
     onSave({
       id: editData?.id || 'staff-' + Date.now(),
+      password: form.password || undefined,
       name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),

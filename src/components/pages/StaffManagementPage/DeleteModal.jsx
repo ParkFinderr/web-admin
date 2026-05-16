@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { PARKINGS } from '../../../data/mockData';
-import { useApp } from '../../../context/AppContext';
-import { Search, Plus, X, UserPlus, Edit2, Trash2, Lock, Eye, EyeOff } from 'lucide-react';
 const PARKING_LIST = PARKINGS || [];
 const fmtDate = iso => {
   if (!iso) return '—';
@@ -87,7 +85,7 @@ function DeleteModal({
   const handle = async () => {
     setLoading(true);
     await new Promise(r => setTimeout(r, 600));
-    onConfirm(staff.id);
+    onConfirm(staff);
     onClose();
   };
   return <div style={{

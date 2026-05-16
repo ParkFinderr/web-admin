@@ -1,13 +1,14 @@
+import { Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Pencil, UserCog, X, RefreshCw } from 'lucide-react'
-import { adminService } from '../services/apiService'
+import { adminService, parkingService } from '../services/apiService'
 
 export default function AdminsPage() {
   const [admins, setAdmins] = useState([])
   const [loading, setLoading] = useState(true)
+  const [areas, setAreas] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [showEdit, setShowEdit] = useState(null)
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [form, setForm] = useState({ name: '', email: '', password: '', areaId: '' })
   const [saving, setSaving] = useState(false)
 
   const fetchAdmins = async () => {
@@ -24,13 +25,30 @@ export default function AdminsPage() {
 
   useEffect(() => { fetchAdmins() }, [])
 
+  useEffect(() => {
+    const fetchAreas = async () => {
+      try {
+        const res = await parkingService.getAll()
+        const list = res.data || res || []
+        setAreas(Array.isArray(list) ? list : [])
+      } catch (err) {
+        console.error('Gagal fetch area parkir:', err)
+      }
+    }
+    fetchAreas()
+  }, [])
+
   const handleAdd = async (e) => {
     e.preventDefault()
+    if (!form.areaId) {
+      alert('Area parkir wajib dipilih.')
+      return
+    }
     setSaving(true)
     try {
-      await adminService.create(form.name, form.email, form.password)
+      await adminService.create(form.name, form.email, form.password, form.areaId)
       setShowAdd(false)
-      setForm({ name: '', email: '', password: '' })
+      setForm({ name: '', email: '', password: '', areaId: '' })
       fetchAdmins()
     } catch (err) { alert(err.message) }
     finally { setSaving(false) }
@@ -44,7 +62,7 @@ export default function AdminsPage() {
       if (form.password) data.password = form.password
       await adminService.update(showEdit.id, data)
       setShowEdit(null)
-      setForm({ name: '', email: '', password: '' })
+      setForm({ name: '', email: '', password: '', areaId: '' })
       fetchAdmins()
     } catch (err) { alert(err.message) }
     finally { setSaving(false) }
@@ -67,7 +85,7 @@ export default function AdminsPage() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost" onClick={fetchAdmins}><RefreshCw size={14} /> Refresh</button>
-          <button className="btn btn-primary" onClick={() => { setForm({ name: '', email: '', password: '' }); setShowAdd(true) }}>
+          <button className="btn btn-primary" onClick={() => { setForm({ name: '', email: '', password: '', areaId: '' }); setShowAdd(true) }}>
             <Plus size={14} /> Tambah Admin
           </button>
         </div>
@@ -139,6 +157,20 @@ export default function AdminsPage() {
             <FormField label="Nama" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} required />
             <FormField label="Email" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} type="email" required />
             <FormField label="Password" value={form.password} onChange={v => setForm(f => ({ ...f, password: v }))} type="password" required />
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Area Parkir</label>
+              <select
+                className="input"
+                value={form.areaId}
+                onChange={e => setForm(f => ({ ...f, areaId: e.target.value }))}
+                required
+              >
+                <option value="">Pilih area parkir</option>
+                {areas.map((area) => (
+                  <option key={area.id} value={area.id}>{area.name}</option>
+                ))}
+              </select>
+            </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
               <button type="button" className="btn btn-ghost" onClick={() => setShowAdd(false)}>Batal</button>
               <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>

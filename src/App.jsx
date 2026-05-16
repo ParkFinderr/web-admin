@@ -3,12 +3,13 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 import { AppProvider, useApp } from './context/AppContext'
+import AdminsPage from './pages/AdminsPage'
 import Dashboard from './pages/Dashboard'
 import LoginPage from './pages/LoginPage'
 import ParkingsPage from './pages/ParkingsPage'
-import AdminsPage from './pages/AdminsPage'
-import UsersPage from './pages/UsersPage'
 import ProfilePage from './pages/ProfilePage'
+import StaffManagementPage from './pages/StaffManagementPage'
+import UsersPage from './pages/UsersPage'
 import './styles/index.css'
 
 /* ── Admin Layout ──────────────────────────────────────────────────── */
@@ -54,10 +55,11 @@ function AppRoutes() {
       <Route path="/" element={<RequireAuth><AdminLayout><Dashboard /></AdminLayout></RequireAuth>} />
       <Route path="/parkings" element={<RequireAuth><AdminLayout><ParkingsPage /></AdminLayout></RequireAuth>} />
       <Route path="/profile" element={<RequireAuth><AdminLayout><ProfilePage /></AdminLayout></RequireAuth>} />
+      <Route path="/staff" element={<RequireSuperAdmin><AdminLayout><StaffManagementPage /></AdminLayout></RequireSuperAdmin>} />
+      <Route path="/users" element={<RequireSuperAdmin><AdminLayout><UsersPage /></AdminLayout></RequireSuperAdmin>} />
 
       {/* SuperAdmin-only routes */}
       <Route path="/admins" element={<RequireSuperAdmin><AdminLayout><AdminsPage /></AdminLayout></RequireSuperAdmin>} />
-      <Route path="/users" element={<RequireSuperAdmin><AdminLayout><UsersPage /></AdminLayout></RequireSuperAdmin>} />
 
       {/* Fallback */}
       <Route path="*" element={
