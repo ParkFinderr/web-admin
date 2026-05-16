@@ -1,377 +1,338 @@
-import { Edit2, ExternalLink, LayoutGrid, Map, MapPin, Plus, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import AddParkingModal from "../components/pages/ParkingsPage/AddParkingModal";
-import EditParkingModal from "../components/pages/ParkingsPage/EditParkingModal";
-import OccupancyBar from "../components/pages/ParkingsPage/OccupancyBar";
-import ParkingDetailModal from "../components/pages/ParkingsPage/ParkingDetailModal";
-import SlotManagerModal from '../components/SlotManagerModal';
-import * as dataService from '../services/dataService';
-const FLOOR_OPTIONS = ['B2', 'B1', 'L1', 'L2', 'L3', 'L4', 'L5'];
+import { useEffect, useState } from 'react'
+import { Car, Plus, Trash2, Pencil, ChevronRight, MapPin, X, RefreshCw } from 'lucide-react'
+import { parkingService, slotService } from '../services/apiService'
 
-// ── Google Maps helpers ───────────────────────────────────────────────
-function parseGoogleMapsUrl(url) {
-  if (!url) return null;
-  // Format: @lat,lng,zoom (standard share link)
-  let m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-  if (m) return {
-    lat: m[1],
-    lng: m[2]
-  };
-  // Format: ?q=lat,lng
-  m = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-  if (m) return {
-    lat: m[1],
-    lng: m[2]
-  };
-  // Format: ll=lat,lng
-  m = url.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
-  if (m) return {
-    lat: m[1],
-    lng: m[2]
-  };
-  return null;
-}
-function getEmbedUrl(url) {
-  const coords = parseGoogleMapsUrl(url);
-  if (!coords) return null;
-  return `https://maps.google.com/maps?q=${coords.lat},${coords.lng}&z=17&output=embed`;
-}
-/* ── Main Page ────────────────────────────────────────────────────────── */
 export default function ParkingsPage() {
-  const [parkings, setParkings] = useState([]);
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all');
-  const [selected, setSelected] = useState(null);
-  const [showAdd, setShowAdd] = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
-  const [slotTarget, setSlotTarget] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [areas, setAreas] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [selectedArea, setSelectedArea] = useState(null)
+  const [slots, setSlots] = useState([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+
+  // Modals
+  const [showAddArea, setShowAddArea] = useState(false)
+  const [showEditArea, setShowEditArea] = useState(null)
+  const [showAddSlot, setShowAddSlot] = useState(false)
+
+  // Forms
+  const [areaForm, setAreaForm] = useState({ name: '', location: '', slot: '' })
+  const [slotForm, setSlotForm] = useState({ slotNumber: '', vehicleType: 'mobil' })
+  const [saving, setSaving] = useState(false)
+
+  const fetchAreas = async () => {
+    setLoading(true)
+    try {
+      const res = await parkingService.getAll()
+      setAreas(res.data || res || [])
+    } catch (err) {
+      console.error('Gagal fetch areas:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSlots = async (areaId) => {
+    setLoadingSlots(true)
+    try {
+      const res = await slotService.getByArea(areaId)
+      setSlots(res.data || res || [])
+    } catch (err) {
+      console.error('Gagal fetch slots:', err)
+      setSlots([])
+    } finally {
+      setLoadingSlots(false)
+    }
+  }
+
+  useEffect(() => { fetchAreas() }, [])
 
   useEffect(() => {
-    const loadParkings = async () => {
-      try {
-        const data = await dataService.getParkings(false);
-        setParkings(data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error loading parkings:', error);
-        setLoading(false);
-      }
-    };
-    loadParkings();
-  }, []);
+    if (selectedArea?.id) fetchSlots(selectedArea.id)
+    else setSlots([])
+  }, [selectedArea])
 
-  const handleAdd = newParking => setParkings(prev => [...prev, newParking]);
-  const handleEdit = updated => {
-    setParkings(prev => prev.map(p => p.id === updated.id ? updated : p));
-    setEditTarget(null);
-  };
-  const filtered = parkings.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === 'all' || filter === 'tersedia' && p.occupancy < 75 || filter === 'ramai' && p.occupancy >= 75 && p.occupancy < 90 || filter === 'penuh' && p.occupancy >= 90;
-    return matchSearch && matchFilter;
-  });
-  return <div>
+  // Area CRUD
+  const handleAddArea = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      await parkingService.create(areaForm.name, areaForm.location, parseInt(areaForm.slot) || 0)
+      setShowAddArea(false)
+      setAreaForm({ name: '', location: '', slot: '' })
+      fetchAreas()
+    } catch (err) { alert(err.message) }
+    finally { setSaving(false) }
+  }
+
+  const handleEditArea = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      await parkingService.update(showEditArea.id, areaForm.name, areaForm.location)
+      setShowEditArea(null)
+      setAreaForm({ name: '', location: '', slot: '' })
+      fetchAreas()
+      if (selectedArea?.id === showEditArea.id) {
+        setSelectedArea(prev => ({ ...prev, name: areaForm.name, location: areaForm.location }))
+      }
+    } catch (err) { alert(err.message) }
+    finally { setSaving(false) }
+  }
+
+  const handleDeleteArea = async (areaId) => {
+    if (!confirm('Yakin hapus area ini? Semua slot di dalamnya akan ikut terhapus.')) return
+    try {
+      await parkingService.delete(areaId)
+      if (selectedArea?.id === areaId) { setSelectedArea(null); setSlots([]) }
+      fetchAreas()
+    } catch (err) { alert(err.message) }
+  }
+
+  // Slot CRUD
+  const handleAddSlot = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      await slotService.add(selectedArea.id, slotForm.slotNumber, slotForm.vehicleType)
+      setShowAddSlot(false)
+      setSlotForm({ slotNumber: '', vehicleType: 'mobil' })
+      fetchSlots(selectedArea.id)
+      fetchAreas() // refresh count
+    } catch (err) { alert(err.message) }
+    finally { setSaving(false) }
+  }
+
+  const handleDeleteSlot = async (slotId) => {
+    if (!confirm('Yakin hapus slot ini?')) return
+    try {
+      await slotService.delete(slotId)
+      fetchSlots(selectedArea.id)
+      fetchAreas()
+    } catch (err) { alert(err.message) }
+  }
+
+  const handleUpdateSlotStatus = async (slotId, newStatus) => {
+    try {
+      await slotService.update(slotId, undefined, newStatus)
+      fetchSlots(selectedArea.id)
+      fetchAreas()
+    } catch (err) { alert(err.message) }
+  }
+
+  const getStatusBadge = (status) => {
+    const map = {
+      available: { cls: 'badge-green', label: 'Tersedia' },
+      occupied: { cls: 'badge-orange', label: 'Terisi' },
+      reserved: { cls: 'badge-blue', label: 'Dipesan' },
+      maintenance: { cls: 'badge-gray', label: 'Maintenance' },
+    }
+    const s = map[status] || { cls: 'badge-gray', label: status || 'Unknown' }
+    return <span className={`badge ${s.cls}`}>{s.label}</span>
+  }
+
+  return (
+    <div className="animate-fade-up">
+      {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">🏢 Gedung Parkir</h1>
-          <p className="page-sub">Monitor status seluruh gedung parkir secara real-time</p>
+          <h1 className="page-title">Gedung Parkir</h1>
+          <p className="page-sub">Kelola area parkir dan slot</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          <Plus size={15} /> Tambah Gedung
-        </button>
-      </div>
-
-      {/* Summary cards */}
-      <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(155px,1fr))',
-      gap: 14,
-      marginBottom: 20
-    }}>
-        {[{
-        label: 'Total Gedung',
-        value: parkings.length,
-        color: 'var(--accent)'
-      }, {
-        label: 'Tersedia',
-        value: parkings.filter(p => p.occupancy < 75).length,
-        color: 'var(--green)'
-      }, {
-        label: 'Ramai',
-        value: parkings.filter(p => p.occupancy >= 75 && p.occupancy < 90).length,
-        color: 'var(--orange)'
-      }, {
-        label: 'Penuh',
-        value: parkings.filter(p => p.occupancy >= 90).length,
-        color: 'var(--red)'
-      }, {
-        label: 'Total Slot',
-        value: parkings.reduce((s, p) => s + p.totalSlots, 0),
-        color: 'var(--text)'
-      }].map((s, i) => <div key={i} className="card" style={{
-        padding: '16px 20px',
-        textAlign: 'center'
-      }}>
-            <div style={{
-          fontSize: 24,
-          fontWeight: 800,
-          color: s.color
-        }}>{s.value}</div>
-            <div style={{
-          fontSize: 12,
-          color: 'var(--text3)',
-          marginTop: 4
-        }}>{s.label}</div>
-          </div>)}
-      </div>
-
-      {/* Filter & Search */}
-      <div className="filter-bar">
-        <div className="input-icon-wrap" style={{
-        flex: 1,
-        minWidth: 200
-      }}>
-          <Search size={14} className="input-icon" />
-          <input className="input" placeholder="Cari nama gedung..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <div className="filter-tabs">
-          {[['all', 'Semua'], ['tersedia', 'Tersedia'], ['ramai', 'Ramai'], ['penuh', 'Penuh']].map(([v, l]) => <button key={v} className={`filter-tab ${filter === v ? 'active' : ''}`} onClick={() => setFilter(v)}>{l}</button>)}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost" onClick={fetchAreas}><RefreshCw size={14} /> Refresh</button>
+          <button className="btn btn-primary" onClick={() => { setAreaForm({ name: '', location: '', slot: '' }); setShowAddArea(true) }}>
+            <Plus size={14} /> Tambah Area
+          </button>
         </div>
       </div>
 
-      {/* Parking Cards */}
-      <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(320px,1fr))',
-      gap: 16
-    }}>
-        {filtered.map((p, i) => <div key={p.id} className="card animate-fade-up" style={{
-        animationDelay: `${i * 0.06}s`
-      }}>
-            <div style={{
-          padding: '18px 20px'
-        }}>
-              <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: 14
-          }}>
-                <div style={{
-              flex: 1,
-              minWidth: 0,
-              paddingRight: 10
-            }}>
-                  <div style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: 'var(--text)',
-                marginBottom: 3
-              }}>{p.name}</div>
-                  <div style={{
-                fontSize: 12,
-                color: 'var(--text3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4
-              }}>
-                    <MapPin size={11} /> {p.address}
+      <div className="section-grid section-grid-1-2">
+        {/* Area list */}
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Daftar Area</span>
+            <span className="badge badge-accent">{areas.length}</span>
+          </div>
+          <div className="card-body" style={{ padding: 0 }}>
+            {loading ? (
+              <div className="empty-state"><div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /></div>
+            ) : areas.length === 0 ? (
+              <div className="empty-state"><div className="empty-icon">🏗️</div><p>Belum ada area parkir</p></div>
+            ) : (
+              areas.map(area => (
+                <div
+                  key={area.id}
+                  onClick={() => setSelectedArea(area)}
+                  style={{
+                    padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12,
+                    borderBottom: '1px solid var(--border)', transition: 'background 0.15s',
+                    background: selectedArea?.id === area.id ? 'var(--accent-glow)' : 'transparent',
+                  }}
+                  onMouseEnter={e => { if (selectedArea?.id !== area.id) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                  onMouseLeave={e => { if (selectedArea?.id !== area.id) e.currentTarget.style.background = 'transparent' }}
+                >
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
+                    <Car size={18} />
                   </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{area.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>{area.location || '—'} · {area.totalSlots || 0} slot</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setAreaForm({ name: area.name, location: area.location || '', slot: '' }); setShowEditArea(area) }}>
+                      <Pencil size={12} />
+                    </button>
+                    <button className="btn btn-danger btn-sm" onClick={(e) => { e.stopPropagation(); handleDeleteArea(area.id) }}>
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                  <ChevronRight size={14} style={{ color: 'var(--text3)' }} />
                 </div>
-                <span className={`badge ${p.tag === 'Tersedia' ? 'badge-green' : p.tag === 'Ramai' ? 'badge-orange' : 'badge-red'}`}>
-                  {p.tag}
-                </span>
-              </div>
-
-              <OccupancyBar pct={p.occupancy} />
-
-              {/* Stats row */}
-              <div style={{
-            display: 'flex',
-            gap: 16,
-            marginTop: 14,
-            paddingTop: 14,
-            borderTop: '1px solid var(--border)'
-          }}>
-                {[['Total Slot', p.totalSlots, 'var(--text)'], ['Terisi', p.usedSlots, 'var(--red)'], ['Kosong', p.totalSlots - p.usedSlots, 'var(--green)']].map(([l, v, c]) => <div key={l}>
-                    <div style={{
-                fontSize: 11,
-                color: 'var(--text3)'
-              }}>{l}</div>
-                    <div style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: c
-              }}>{v}</div>
-                  </div>)}
-              </div>
-
-              {/* Action buttons row — full width, 3 columns */}
-              <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: 6,
-            marginTop: 10
-          }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => setSelected(p)} style={{
-              justifyContent: 'center'
-            }}>
-                  Detail →
-                </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setSlotTarget(p)} style={{
-              color: 'var(--accent)',
-              borderColor: 'rgba(0,210,255,0.2)',
-              background: 'rgba(0,210,255,0.06)',
-              justifyContent: 'center'
-            }}>
-                  <LayoutGrid size={13} /> Slot
-                </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setEditTarget(p)} style={{
-              color: 'var(--orange)',
-              borderColor: 'rgba(245,158,11,0.2)',
-              background: 'rgba(245,158,11,0.06)',
-              justifyContent: 'center'
-            }}>
-                  <Edit2 size={13} /> Edit
-                </button>
-              </div>
-
-              {/* Floor tags */}
-              <div style={{
-            marginTop: 8,
-            display: 'flex',
-            gap: 6,
-            flexWrap: 'wrap'
-          }}>
-                {p.floors.map(f => <span key={f} style={{
-              fontSize: 11,
-              background: 'var(--bg-hover)',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              padding: '2px 8px',
-              color: 'var(--text3)'
-            }}>
-                    {f}
-                  </span>)}
-              </div>
-            </div>
-          </div>)}
-      </div>
-
-      {/* Map ─ Real Google Maps Embeds */}
-      <div className="card" style={{
-      marginTop: 20
-    }}>
-        <div className="card-header">
-          <span className="card-title">🗺️ Peta Lokasi Gedung Parkir</span>
-          <span className="badge badge-accent">Bandar Lampung</span>
+              ))
+            )}
+          </div>
         </div>
-        <div className="card-body">
-          <p style={{
-          fontSize: 13,
-          color: 'var(--text3)',
-          marginBottom: 16
-        }}>
-            Klik <strong style={{
-            color: 'var(--accent)'
-          }}>Edit</strong> pada kartu gedung untuk mengubah link Google Maps.
-            Data peta diambil langsung dari koordinat yang diberikan admin.
-          </p>
-          <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))',
-          gap: 16
-        }}>
-            {parkings.map(p => {
-            const embedUrl = getEmbedUrl(p.googleMapsUrl);
-            const occColor = p.occupancy >= 90 ? 'var(--red)' : p.occupancy >= 75 ? 'var(--orange)' : 'var(--green)';
-            return <div key={p.id} style={{
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius)',
-              overflow: 'hidden'
-            }}>
-                  {/* Mini header */}
-                  <div style={{
-                padding: '10px 14px',
-                background: 'var(--bg-hover)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                    <div>
-                      <div style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'var(--text)'
-                  }}>{p.name}</div>
-                      <div style={{
-                    fontSize: 11,
-                    color: 'var(--text3)',
-                    marginTop: 1
-                  }}>{p.address}</div>
-                    </div>
-                    <span className={`badge badge-${p.tagClass}`}>{p.tag}</span>
-                  </div>
-                  {/* Map or placeholder */}
-                  {embedUrl ? <>
-                      <iframe src={embedUrl} width="100%" height="180" style={{
-                  border: 'none',
-                  display: 'block'
-                }} title={`Peta ${p.name}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
-                      <div style={{
-                  padding: '8px 14px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: 'var(--bg-card)'
-                }}>
-                        <span style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: occColor
-                  }}>{p.occupancy}% Terisi</span>
-                        <a href={p.googleMapsUrl} target="_blank" rel="noreferrer" style={{
-                    fontSize: 11,
-                    color: 'var(--accent)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 3,
-                    textDecoration: 'none'
-                  }}>
-                          <ExternalLink size={11} /> Buka Maps
-                        </a>
-                      </div>
-                    </> : <div style={{
-                height: 180,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'var(--bg-base)',
-                gap: 8
-              }}>
-                      <Map size={28} color="var(--text3)" />
-                      <div style={{
-                  fontSize: 12,
-                  color: 'var(--text3)'
-                }}>Belum ada link Google Maps</div>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setEditTarget(p)} style={{
-                  fontSize: 11
-                }}>
-                        + Tambah Link Maps
-                      </button>
-                    </div>}
-                </div>;
-          })}
+
+        {/* Slot panel */}
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">
+              {selectedArea ? `Slot — ${selectedArea.name}` : 'Pilih Area'}
+            </span>
+            {selectedArea && (
+              <button className="btn btn-primary btn-sm" onClick={() => { setSlotForm({ slotNumber: '', vehicleType: 'mobil' }); setShowAddSlot(true) }}>
+                <Plus size={12} /> Tambah Slot
+              </button>
+            )}
+          </div>
+          <div className="card-body" style={{ padding: 0 }}>
+            {!selectedArea ? (
+              <div className="empty-state"><div className="empty-icon">👈</div><p>Pilih area di kiri untuk melihat slot</p></div>
+            ) : loadingSlots ? (
+              <div className="empty-state"><div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /></div>
+            ) : slots.length === 0 ? (
+              <div className="empty-state"><div className="empty-icon">📦</div><p>Belum ada slot di area ini</p></div>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Slot</th>
+                      <th>Tipe</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {slots.map(slot => (
+                      <tr key={slot.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--text)' }}>{slot.slotNumber || slot.slotName || slot.id}</td>
+                        <td>{slot.vehicleType || '—'}</td>
+                        <td>{getStatusBadge(slot.status || slot.appStatus)}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {(slot.status === 'available' || slot.appStatus === 'available') && (
+                              <button className="btn btn-ghost btn-sm" onClick={() => handleUpdateSlotStatus(slot.id, 'maintenance')}>
+                                Maintenance
+                              </button>
+                            )}
+                            {(slot.status === 'maintenance') && (
+                              <button className="btn btn-ghost btn-sm" onClick={() => handleUpdateSlotStatus(slot.id, 'available')}>
+                                Aktifkan
+                              </button>
+                            )}
+                            <button className="btn btn-danger btn-sm" onClick={() => handleDeleteSlot(slot.id)}>
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Modals */}
-      {selected && <ParkingDetailModal parking={selected} onClose={() => setSelected(null)} />}
-      {showAdd && <AddParkingModal onClose={() => setShowAdd(false)} onAdd={handleAdd} />}
-      {editTarget && <EditParkingModal parking={editTarget} onClose={() => setEditTarget(null)} onSave={handleEdit} />}
-      {slotTarget && <SlotManagerModal parking={slotTarget} onClose={() => setSlotTarget(null)} onSave={() => {}} />}
-    </div>;
+      {/* ── Add Area Modal ── */}
+      {showAddArea && (
+        <Modal title="Tambah Area Parkir" onClose={() => setShowAddArea(false)}>
+          <form onSubmit={handleAddArea}>
+            <FormField label="Nama Area" value={areaForm.name} onChange={v => setAreaForm(f => ({ ...f, name: v }))} placeholder="Gedung A" required />
+            <FormField label="Lokasi" value={areaForm.location} onChange={v => setAreaForm(f => ({ ...f, location: v }))} placeholder="Jl. Contoh No. 1" />
+            <FormField label="Jumlah Slot Awal" value={areaForm.slot} onChange={v => setAreaForm(f => ({ ...f, slot: v }))} placeholder="20" type="number" />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button type="button" className="btn btn-ghost" onClick={() => setShowAddArea(false)}>Batal</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ── Edit Area Modal ── */}
+      {showEditArea && (
+        <Modal title="Edit Area Parkir" onClose={() => setShowEditArea(null)}>
+          <form onSubmit={handleEditArea}>
+            <FormField label="Nama Area" value={areaForm.name} onChange={v => setAreaForm(f => ({ ...f, name: v }))} required />
+            <FormField label="Lokasi" value={areaForm.location} onChange={v => setAreaForm(f => ({ ...f, location: v }))} />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button type="button" className="btn btn-ghost" onClick={() => setShowEditArea(null)}>Batal</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ── Add Slot Modal ── */}
+      {showAddSlot && (
+        <Modal title={`Tambah Slot — ${selectedArea?.name}`} onClose={() => setShowAddSlot(false)}>
+          <form onSubmit={handleAddSlot}>
+            <FormField label="Nomor Slot" value={slotForm.slotNumber} onChange={v => setSlotForm(f => ({ ...f, slotNumber: v }))} placeholder="A-01" required />
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Tipe Kendaraan</label>
+              <select className="input" value={slotForm.vehicleType} onChange={e => setSlotForm(f => ({ ...f, vehicleType: e.target.value }))}>
+                <option value="mobil">Mobil</option>
+                <option value="motor">Motor</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button type="button" className="btn btn-ghost" onClick={() => setShowAddSlot(false)}>Batal</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+/* ── Reusable Components ─────────────────────────────────── */
+function Modal({ title, children, onClose }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
+      <div style={{
+        position: 'relative', width: '100%', maxWidth: 440,
+        background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16,
+        padding: 24, animation: 'fadeUp 0.25s ease both',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{title}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', display: 'flex' }}><X size={18} /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function FormField({ label, value, onChange, placeholder, type = 'text', required }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>{label}</label>
+      <input className="input" type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required} />
+    </div>
+  )
 }

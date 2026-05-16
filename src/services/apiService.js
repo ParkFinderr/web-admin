@@ -17,28 +17,20 @@ const fetchAPI = async (method, endpoint, body = null) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const options = {
-    method,
-    headers,
-  };
+  const options = { method, headers };
 
   if (body) {
     options.body = JSON.stringify(body);
   }
 
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(`API Error [${method} ${endpoint}]:`, error);
-    throw error;
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || `HTTP ${response.status}`);
   }
+
+  return await response.json();
 };
 
 // ─── Authentication ───────────────────────────────────────
@@ -48,12 +40,9 @@ export const authService = {
   
   logout: () => 
     fetchAPI('POST', '/auth/logout'),
-  
-  register: (name, email, password, phoneNumber, plateNumber) =>
-    fetchAPI('POST', '/auth/register', { name, email, password, phoneNumber, plateNumber }),
 };
 
-// ─── Admin Management ──────────────────────────────────────
+// ─── SuperAdmin → Admin Management ──────────────────────────
 export const adminService = {
   getAll: () => 
     fetchAPI('GET', '/superAdmin/admins'),
@@ -64,8 +53,8 @@ export const adminService = {
   create: (name, email, password) =>
     fetchAPI('POST', '/superAdmin/admins', { name, email, password }),
   
-  update: (adminId, name, password) =>
-    fetchAPI('PUT', `/superAdmin/admins/${adminId}`, { name, password }),
+  update: (adminId, data) =>
+    fetchAPI('PUT', `/superAdmin/admins/${adminId}`, data),
   
   delete: (adminId) =>
     fetchAPI('DELETE', `/superAdmin/admins/${adminId}`),
@@ -87,32 +76,6 @@ export const userService = {
   
   updateProfile: (name, phoneNumber) =>
     fetchAPI('PUT', '/users/profile', { name, phoneNumber }),
-  
-  uploadProfilePhoto: (file) => {
-    const formData = new FormData();
-    formData.append('image', file);
-    
-    const token = getToken();
-    const headers = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return fetch(`${API_BASE_URL}/users/profile/photo`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    }).then(res => res.json());
-  },
-};
-
-// ─── Vehicle Management ───────────────────────────────────
-export const vehicleService = {
-  add: (plateNumber, vehicleType) =>
-    fetchAPI('POST', '/users/vehicles', { plateNumber, vehicleType }),
-  
-  delete: (plateNumber) =>
-    fetchAPI('DELETE', `/users/vehicles/${plateNumber}`),
 };
 
 // ─── Parking Area Management ──────────────────────────────
@@ -151,53 +114,17 @@ export const slotService = {
     fetchAPI('GET', `/areas/${areaId}/slots`),
 };
 
-// ─── Access & Ticket (User) ────────────────────────────────
-export const accessService = {
-  verifyTicket: (ticketId) =>
-    fetchAPI('POST', '/access/verify', { ticketId }),
-  
-  getActiveTicket: () =>
-    fetchAPI('GET', '/access/activeTicket'),
-  
-  cancelTicket: (ticketId) =>
-    fetchAPI('POST', '/access/cancelTicket', { ticketId }),
-};
-
-// ─── Access & Ticket (Guest) ───────────────────────────────
-export const guestAccessService = {
-  verifyTicket: (ticketId) =>
-    fetchAPI('POST', '/access/verify', { ticketId }),
-  
-  getActiveTicket: (guestSessionId) =>
-    fetchAPI('GET', `/access/activeTicket?guestSessionId=${guestSessionId}`),
-  
-  cancelTicket: (guestSessionId) =>
-    fetchAPI('POST', '/access/cancelTicket', { guestSessionId }),
-};
-
-// ─── Dashboard Stats (custom endpoint - may need to be created) ────
+// ─── Statistics ───────────────────────────────────────────
 export const statsService = {
-  getDashboardStats: () => 
+  getDashboardStats: () =>
     fetchAPI('GET', '/stats/dashboard'),
-  
+
   getBookingStats: (days = 7) =>
     fetchAPI('GET', `/stats/bookings?days=${days}`),
-  
+
   getScanStats: () =>
     fetchAPI('GET', '/stats/scans'),
-  
+
   getAnalytics: (period = 'week') =>
     fetchAPI('GET', `/stats/analytics?period=${period}`),
-};
-
-export default {
-  authService,
-  adminService,
-  userService,
-  vehicleService,
-  parkingService,
-  slotService,
-  accessService,
-  guestAccessService,
-  statsService,
 };

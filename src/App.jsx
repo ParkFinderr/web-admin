@@ -1,21 +1,14 @@
 import { useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
-import StaffLayout from './components/StaffLayout'
 import Topbar from './components/Topbar'
 import { AppProvider, useApp } from './context/AppContext'
-import AnalyticsPage from './pages/AnalyticsPage'
-import BookingsPage from './pages/BookingsPage'
 import Dashboard from './pages/Dashboard'
 import LoginPage from './pages/LoginPage'
 import ParkingsPage from './pages/ParkingsPage'
-import ProfilePage from './pages/ProfilePage'
-import ScansPage from './pages/ScansPage'
-import SettingsPage from './pages/SettingsPage'
-import StaffDashboard from './pages/StaffDashboard'
-import StaffManagementPage from './pages/StaffManagementPage'
-import SwapsPage from './pages/SwapsPage'
+import AdminsPage from './pages/AdminsPage'
 import UsersPage from './pages/UsersPage'
+import ProfilePage from './pages/ProfilePage'
 import './styles/index.css'
 
 /* ── Admin Layout ──────────────────────────────────────────────────── */
@@ -33,61 +26,42 @@ function AdminLayout({ children }) {
 }
 
 /* ── Route Guards ──────────────────────────────────────────────────── */
-function RequireAdmin({ children }) {
-  const { isLoggedIn, isAdmin } = useApp()
+function RequireAuth({ children }) {
+  const { isLoggedIn } = useApp()
   if (!isLoggedIn) return <Navigate to="/login" replace />
-  if (!isAdmin)   return <Navigate to="/staff" replace />
   return children
 }
 
-function RequireStaff({ children }) {
-  const { isLoggedIn, isStaff } = useApp()
+function RequireSuperAdmin({ children }) {
+  const { isLoggedIn, isSuperAdmin } = useApp()
   if (!isLoggedIn) return <Navigate to="/login" replace />
-  if (!isStaff)    return <Navigate to="/" replace />
+  if (!isSuperAdmin) return <Navigate to="/" replace />
   return children
 }
 
 /* ── Routes ────────────────────────────────────────────────────────── */
 function AppRoutes() {
-  const { isLoggedIn, isAdmin, isStaff } = useApp()
-
-  const adminHome = (
-    <RequireAdmin>
-      <AdminLayout><Dashboard /></AdminLayout>
-    </RequireAdmin>
-  )
+  const { isLoggedIn } = useApp()
 
   return (
     <Routes>
       {/* Public */}
       <Route path="/login" element={
-        !isLoggedIn ? <LoginPage />
-          : isAdmin ? <Navigate to="/" replace />
-          : <Navigate to="/staff" replace />
+        !isLoggedIn ? <LoginPage /> : <Navigate to="/" replace />
       } />
 
-      {/* Admin routes */}
-      <Route path="/" element={<RequireAdmin><AdminLayout><Dashboard /></AdminLayout></RequireAdmin>} />
-      <Route path="/parkings"  element={<RequireAdmin><AdminLayout><ParkingsPage /></AdminLayout></RequireAdmin>} />
-      <Route path="/bookings"  element={<RequireAdmin><AdminLayout><BookingsPage /></AdminLayout></RequireAdmin>} />
-      <Route path="/users"     element={<RequireAdmin><AdminLayout><UsersPage /></AdminLayout></RequireAdmin>} />
-      <Route path="/scans"     element={<RequireAdmin><AdminLayout><ScansPage /></AdminLayout></RequireAdmin>} />
-      <Route path="/swaps"     element={<RequireAdmin><AdminLayout><SwapsPage /></AdminLayout></RequireAdmin>} />
-      <Route path="/analytics" element={<RequireAdmin><AdminLayout><AnalyticsPage /></AdminLayout></RequireAdmin>} />
-      <Route path="/staff-management" element={<RequireAdmin><AdminLayout><StaffManagementPage /></AdminLayout></RequireAdmin>} />
-      <Route path="/profile"          element={<RequireAdmin><AdminLayout><ProfilePage /></AdminLayout></RequireAdmin>} />
-      <Route path="/settings"  element={<RequireAdmin><AdminLayout><SettingsPage /></AdminLayout></RequireAdmin>} />
+      {/* Shared routes (both superAdmin & admin) */}
+      <Route path="/" element={<RequireAuth><AdminLayout><Dashboard /></AdminLayout></RequireAuth>} />
+      <Route path="/parkings" element={<RequireAuth><AdminLayout><ParkingsPage /></AdminLayout></RequireAuth>} />
+      <Route path="/profile" element={<RequireAuth><AdminLayout><ProfilePage /></AdminLayout></RequireAuth>} />
 
-      {/* Staff route */}
-      <Route path="/staff" element={
-        <RequireStaff>
-          <StaffLayout><StaffDashboard /></StaffLayout>
-        </RequireStaff>
-      } />
+      {/* SuperAdmin-only routes */}
+      <Route path="/admins" element={<RequireSuperAdmin><AdminLayout><AdminsPage /></AdminLayout></RequireSuperAdmin>} />
+      <Route path="/users" element={<RequireSuperAdmin><AdminLayout><UsersPage /></AdminLayout></RequireSuperAdmin>} />
 
       {/* Fallback */}
       <Route path="*" element={
-        <Navigate to={!isLoggedIn ? '/login' : isAdmin ? '/' : '/staff'} replace />
+        <Navigate to={isLoggedIn ? '/' : '/login'} replace />
       } />
     </Routes>
   )

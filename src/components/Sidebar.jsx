@@ -1,44 +1,45 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Car, CalendarCheck, Users,
-  QrCode, ArrowLeftRight, BarChart3, Settings, LogOut, UserCog, UserCircle
+  LayoutDashboard, Car, Users, UserCog, UserCircle, LogOut
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import Avatar from './Avatar'
 
 const LOGO_URL = 'https://storage.googleapis.com/parkfinderbucket/foto/logo.png'
 
-const NAV_ITEMS = [
-  {
-    section: 'Utama',
-    items: [
-      { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-      { path: '/parkings', label: 'Gedung Parkir', icon: Car },
-      { path: '/bookings', label: 'Manajemen Booking', icon: CalendarCheck, badge: '1.2K' },
-      { path: '/users', label: 'Data Pengguna', icon: Users },
-    ],
-  },
-  {
-    section: 'Monitoring',
-    items: [
-      { path: '/scans', label: 'Log Scan QR', icon: QrCode },
-      { path: '/swaps', label: 'Tukar Slot', icon: ArrowLeftRight },
-      { path: '/analytics', label: 'Analitik & Statistik', icon: BarChart3 },
-    ],
-  },
-  {
-    section: 'Sistem',
-    items: [
-      { path: '/staff-management', label: 'Manajemen Staff', icon: UserCog },
-      { path: '/profile',          label: 'Profil & Keamanan', icon: UserCircle },
-      { path: '/settings',         label: 'Pengaturan', icon: Settings },
-    ],
-  },
-]
-
 export default function Sidebar({ open, onClose }) {
-  const { user, logout } = useApp()
+  const { user, logout, isSuperAdmin } = useApp()
   const navigate = useNavigate()
+
+  // Build nav items based on role
+  const NAV_ITEMS = [
+    {
+      section: 'Utama',
+      items: [
+        { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/parkings', label: 'Gedung Parkir', icon: Car },
+      ],
+    },
+    // SuperAdmin-only section
+    ...(isSuperAdmin ? [{
+      section: 'Manajemen',
+      items: [
+        { path: '/admins', label: 'Admin Parkir', icon: UserCog },
+        { path: '/users', label: 'Data Pengguna', icon: Users },
+      ],
+    }] : []),
+    {
+      section: 'Akun',
+      items: [
+        { path: '/profile', label: 'Profil', icon: UserCircle },
+      ],
+    },
+  ]
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+    onClose?.()
+  }
 
   return (
     <>
@@ -54,7 +55,9 @@ export default function Sidebar({ open, onClose }) {
             style={{ height: 36, width: 'auto', objectFit: 'contain', maxWidth: 140 }}
             onError={e => { e.target.style.display = 'none' }}
           />
-          <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600, marginTop: 2, letterSpacing: '0.5px' }}>ADMIN DASHBOARD</div>
+          <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600, marginTop: 2, letterSpacing: '0.5px' }}>
+            {isSuperAdmin ? 'SUPER ADMIN' : 'ADMIN PARKIR'}
+          </div>
         </div>
 
         {/* Nav */}
@@ -74,7 +77,6 @@ export default function Sidebar({ open, onClose }) {
                   >
                     <span className="nav-item-icon"><Icon size={16} /></span>
                     {item.label}
-                    {item.badge && <span className="nav-item-badge">{item.badge}</span>}
                   </NavLink>
                 )
               })}
@@ -89,20 +91,16 @@ export default function Sidebar({ open, onClose }) {
             padding: '10px 12px', borderRadius: 'var(--radius)',
             background: 'var(--bg-hover)', border: '1px solid var(--border)',
           }}>
-            <button
-              onClick={() => { navigate('/profile'); onClose?.() }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', borderRadius: '50%' }}
-              title="Profil & Keamanan"
-            >
-              <Avatar size={36} fontSize={15} />
-            </button>
+            <div className="avatar" style={{ width: 36, height: 36, fontSize: 14 }}>
+              {(user?.name || 'A').charAt(0).toUpperCase()}
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{user?.name || 'Admin'}</div>
               <div style={{ fontSize: 11, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user?.email || 'admin@parkfinder.id'}
+                {user?.role === 'superAdmin' ? 'Super Admin' : 'Admin Parkir'}
               </div>
             </div>
-            <button onClick={logout} title="Logout" style={{
+            <button onClick={handleLogout} title="Logout" style={{
               background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)',
               display: 'flex', padding: 4, borderRadius: 6, transition: 'color 0.2s',
             }}
