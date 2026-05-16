@@ -125,7 +125,7 @@ export const slotService = {
   // PUT /areas/{slotId} — update slot (super admin)
   // Body: { slotName, appStatus }
   update: (slotId, slotName, appStatus) =>
-    fetchAPI('PUT', `/areas/${slotId}`, { slotName, appStatus }),
+    fetchAPI('PUT', `/areas/slots/${slotId}`, { slotName, appStatus }),
 
   delete: (slotId) =>
     fetchAPI('DELETE', `/areas/slots/${slotId}`),
