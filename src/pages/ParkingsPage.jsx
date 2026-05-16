@@ -211,7 +211,6 @@ export default function ParkingsPage() {
     try {
       await slotService.update(
         slot.id,
-        slot.sensorId || '',
         slot.slotName || slot.slotNumber || '',
         newAppStatus,
       )
