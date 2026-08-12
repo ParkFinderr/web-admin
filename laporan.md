@@ -59,40 +59,72 @@ Fungsi diidentifikasi berdasarkan kemampuan bisnis yang benar-benar dapat dilaku
 
 ## 4. Penentuan Kompleksitas Fungsi
 
-Kompleksitas ditentukan menggunakan matriks standar Function Point. Untuk EI/EO/EQ digunakan jumlah DET dan FTR; untuk EIF digunakan jumlah DET dan RET. DET dihitung sebagai jumlah elemen data yang diproses oleh transaksi, FTR sebagai jumlah file logis yang dirujuk, dan RET sebagai jumlah tipe rekaman dalam file logis.
+### 4.1 Parameter Penilaian Kompleksitas
 
-| No | Fungsi | Jenis FP | Kompleksitas | Alasan Penentuan |
-|---|---|---|---|---|
-| 1 | Login | EI | Low | 2 DET (email, password), 1 FTR (data akun) |
-| 2 | Logout | EI | Low | 1 DET (sesi/token), 1 FTR |
-| 3 | Tambah area parkir | EI | Low | 5 DET (nama, alamat, total lantai, email kontak, status aktif), 1 FTR (data area) |
-| 4 | Ubah area parkir | EI | Low | 3 DET, 1 FTR |
-| 5 | Hapus area parkir | EI | Low | 1 DET, 1 FTR |
-| 6 | Tambah slot parkir | EI | Low | 4 DET, 2 FTR (data area dan slot) |
-| 7 | Ubah slot parkir | EI | Low | 4 DET (lantai, nama, status, ID slot), 2 FTR |
-| 8 | Hapus slot parkir | EI | Low | 1 DET, 1 FTR |
-| 9 | Tambah akun Admin Area | EI | Low | 4 DET, 2 FTR (data akun dan area) |
-| 10 | Ubah akun Admin Area | EI | Low | 3–4 DET, 2 FTR |
-| 11 | Hapus akun Admin Area | EI | Low | 1 DET, 1 FTR |
-| 12 | Tambah akun Staff Gedung | EI | Medium | 6 DET (nama, email, password, telepon, area, shift), 2 FTR |
-| 13 | Ubah akun Staff Gedung | EI | Medium | 6–7 DET, 2 FTR |
-| 14 | Ubah password Staff Gedung | EI | Low | 2 DET, 1 FTR |
-| 15 | Hapus akun Staff Gedung | EI | Low | 1 DET, 1 FTR |
-| 16 | Unggah foto profil | EI | Low | 1–2 DET (berkas gambar), 1 FTR |
-| 17 | Melihat ringkasan kondisi parkir | EO | High | DET > 16 (multi-area dan multi-slot), 2 FTR; output memuat hasil agregasi dan perhitungan persentase |
-| 18 | Melihat analitik dan statistik | EO | High | DET > 16, 3 FTR; output agregat dari beberapa sumber data |
-| 19 | Melihat daftar gedung | EQ | Low | 6 DET, 1 FTR |
-| 20 | Melihat daftar slot | EQ | Low | 6 DET, 1 FTR |
-| 21 | Melihat daftar booking | EQ | Low | 12 DET, 1 FTR |
-| 22 | Melihat daftar pengguna | EQ | Medium | 11 DET, 2 FTR (data pengguna dan data booking) |
-| 23 | Melihat riwayat scan QR | EQ | Low | 8 DET, 1 FTR |
-| 24 | Melihat riwayat swap slot | EQ | Low | 11 DET, 1 FTR |
-| 25 | Melihat daftar akun Admin Area | EQ | Low | 4 DET, 1 FTR |
-| 26 | Melihat daftar akun Staff Gedung | EQ | Low | 7 DET, 1 FTR |
-| 27 | Data pengguna | EIF | Medium | 11 DET, 1 RET |
-| 28 | Data booking | EIF | Medium | 14 DET, 1 RET |
-| 29 | Data log scan | EIF | Medium | 8 DET, 1 RET |
-| 30 | Data swap | EIF | Medium | 11 DET, 1 RET |
+Kompleksitas setiap fungsi ditentukan melalui matriks standar Function Point. Terdapat tiga tingkat kompleksitas, yaitu Low (rendah), Medium (sedang), dan High (tinggi). Penentuan tingkat tersebut bergantung pada dua parameter yang berbeda untuk fungsi transaksi (EI, EO, EQ) dan fungsi data (ILF, EIF).
+
+#### Parameter untuk Fungsi Transaksi (EI, EO, EQ)
+
+1. **Data Element Type (DET)** — jumlah elemen data unik yang dikenali pengguna dan diproses oleh transaksi. Setiap kolom pada formulir masukan atau setiap field yang ditampilkan pada keluaran dihitung sebagai satu DET. Contoh pada source code: transaksi *Login* memproses 2 DET, yaitu `email` dan `password` (`LoginForm.jsx`); transaksi *Tambah area parkir* memproses 5 DET, yaitu `name`, `address`, `totalFloors`, `contactEmail`, dan `isActive` (`ParkingsPage.jsx`).
+2. **File Type Referenced (FTR)** — jumlah file logis (ILF atau EIF) yang dirujuk oleh transaksi. Setiap file logis yang dibaca atau dimutakhirkan oleh satu transaksi dihitung satu kali. Contoh pada source code: transaksi *Tambah slot parkir* merujuk dua file logis, yaitu file data area (untuk menentukan area tujuan) dan file data slot (yang dimutakhirkan) (`slot.service.js`).
+
+#### Parameter untuk Fungsi Data (ILF, EIF)
+
+1. **Record Element Type (RET)** — jumlah subkelompok data yang dapat dikenali pengguna di dalam file logis. Contoh pada source code: file data pengguna memiliki satu RET karena seluruh rekaman pengguna (terdaftar dan tamu) disajikan sebagai satu kelompok data yang sama pada `UsersPage.jsx`.
+2. **Data Element Type (DET)** — jumlah elemen data unik yang dipertahankan atau dirujuk di dalam file logis. Contoh pada source code: file data booking memiliki 14 DET berupa `id`, `userId`, `userName`, `userPhone`, `plate`, `parkingId`, `parkingName`, `floor`, `slot`, `status`, `createdAt`, `duration`, `scanTime`, dan `exitTime` (`monitoring.service.js`).
+
+### 4.2 Matriks Kompleksitas Fungsi Transaksi (EI, EO, EQ)
+
+| | 1–4 DET | 5–15 DET | 16+ DET |
+|---|---|---|---|
+| 1 FTR | Low | Low | Medium |
+| 2 FTR | Low | Medium | High |
+| 3+ FTR | Medium | High | High |
+
+### 4.3 Matriks Kompleksitas Fungsi Data (ILF, EIF)
+
+| | 1 DET | 2–5 DET | 6+ DET |
+|---|---|---|---|
+| 1 RET | Low | Low | Medium |
+| 2–5 RET | Low | Medium | High |
+| 6+ RET | Medium | High | High |
+
+### 4.4 Penerapan pada Setiap Fungsi
+
+| No | Fungsi | Jenis FP | DET | FTR/RET | Kompleksitas | Alasan Penentuan |
+|---|---|---|---|---|---|---|
+| 1 | Login | EI | 2 | 1 FTR | Low | 2 DET (email, password) dengan 1 FTR → baris 1 FTR, kolom 1–4 DET = Low |
+| 2 | Logout | EI | 1 | 1 FTR | Low | 1 DET (sesi/token) dengan 1 FTR → Low |
+| 3 | Tambah area parkir | EI | 5 | 1 FTR | Low | 5 DET (nama, alamat, total lantai, email kontak, status aktif) dengan 1 FTR → Low |
+| 4 | Ubah area parkir | EI | 3 | 1 FTR | Low | 3 DET dengan 1 FTR → Low |
+| 5 | Hapus area parkir | EI | 1 | 1 FTR | Low | 1 DET dengan 1 FTR → Low |
+| 6 | Tambah slot parkir | EI | 4 | 2 FTR | Low | 4 DET (areaId, floor, slotName, sensorId) dengan 2 FTR → Low |
+| 7 | Ubah slot parkir | EI | 4 | 2 FTR | Low | 4 DET (lantai, nama, status, ID slot) dengan 2 FTR → Low |
+| 8 | Hapus slot parkir | EI | 1 | 1 FTR | Low | 1 DET dengan 1 FTR → Low |
+| 9 | Tambah akun Admin Area | EI | 4 | 2 FTR | Low | 4 DET (nama, email, password, area) dengan 2 FTR → Low |
+| 10 | Ubah akun Admin Area | EI | 4 | 2 FTR | Low | 3–4 DET dengan 2 FTR → Low |
+| 11 | Hapus akun Admin Area | EI | 1 | 1 FTR | Low | 1 DET dengan 1 FTR → Low |
+| 12 | Tambah akun Staff Gedung | EI | 6 | 2 FTR | Medium | 6 DET (nama, email, password, telepon, area, shift) dengan 2 FTR → baris 2 FTR, kolom 5–15 DET = Medium |
+| 13 | Ubah akun Staff Gedung | EI | 7 | 2 FTR | Medium | 6–7 DET dengan 2 FTR → Medium |
+| 14 | Ubah password Staff Gedung | EI | 2 | 1 FTR | Low | 2 DET dengan 1 FTR → Low |
+| 15 | Hapus akun Staff Gedung | EI | 1 | 1 FTR | Low | 1 DET dengan 1 FTR → Low |
+| 16 | Unggah foto profil | EI | 2 | 1 FTR | Low | 1–2 DET (berkas gambar) dengan 1 FTR → Low |
+| 17 | Melihat ringkasan kondisi parkir | EO | 20+ | 2 FTR | High | DET > 16 (multi-area dan multi-slot), 2 FTR → baris 2 FTR, kolom 16+ DET = High |
+| 18 | Melihat analitik dan statistik | EO | 20+ | 3 FTR | High | DET > 16, 3 FTR → baris 3+ FTR, kolom 16+ DET = High |
+| 19 | Melihat daftar gedung | EQ | 6 | 1 FTR | Low | 6 DET dengan 1 FTR → baris 1 FTR, kolom 5–15 DET = Low |
+| 20 | Melihat daftar slot | EQ | 6 | 1 FTR | Low | 6 DET dengan 1 FTR → Low |
+| 21 | Melihat daftar booking | EQ | 12 | 1 FTR | Low | 12 DET dengan 1 FTR → Low |
+| 22 | Melihat daftar pengguna | EQ | 11 | 2 FTR | Medium | 11 DET dengan 2 FTR → baris 2 FTR, kolom 5–15 DET = Medium |
+| 23 | Melihat riwayat scan QR | EQ | 8 | 1 FTR | Low | 8 DET dengan 1 FTR → Low |
+| 24 | Melihat riwayat swap slot | EQ | 11 | 1 FTR | Low | 11 DET dengan 1 FTR → Low |
+| 25 | Melihat daftar akun Admin Area | EQ | 4 | 1 FTR | Low | 4 DET dengan 1 FTR → Low |
+| 26 | Melihat daftar akun Staff Gedung | EQ | 7 | 1 FTR | Low | 7 DET dengan 1 FTR → Low |
+| 27 | Data pengguna | EIF | 11 | 1 RET | Medium | 11 DET, 1 RET → baris 1 RET, kolom 6+ DET = Medium |
+| 28 | Data booking | EIF | 14 | 1 RET | Medium | 14 DET, 1 RET → Medium |
+| 29 | Data log scan | EIF | 8 | 1 RET | Medium | 8 DET, 1 RET → Medium |
+| 30 | Data swap | EIF | 11 | 1 RET | Medium | 11 DET, 1 RET → Medium |
+
+Contoh pembacaan matriks: fungsi *Tambah area parkir* memiliki 5 DET dan 1 FTR. Pada matriks fungsi transaksi, perpotongan baris "1 FTR" dan kolom "5–15 DET" menghasilkan kompleksitas Low, sehingga fungsi tersebut diberi bobot EI Low sebesar 3. Fungsi *Melihat ringkasan kondisi parkir* memiliki lebih dari 16 DET dan 2 FTR, sehingga perpotongan baris "2 FTR" dan kolom "16+ DET" menghasilkan kompleksitas High dengan bobot EO High sebesar 7.
 
 ## 5. Perhitungan Unadjusted Function Point
 
